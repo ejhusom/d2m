@@ -1,0 +1,7 @@
+.git/
+.dvc/
+venv*
+build/
+test/
+assets/
+docs/
