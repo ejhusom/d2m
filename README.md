@@ -16,8 +16,8 @@ Tested on:
 
 
 1. Clone/download this repository.
-2. Place your datafiles in a folder with the name of your dataset (`DATASET`) inside `assets/data/raw/`, so the path to the files is `assets/data/raw/[DATASET]/`.
-3. Update `params.yaml` with the name of your dataset, the target variable, and other configuration parameters.
+2. Place your datafiles (csv) in a folder with the name of your dataset (`DATASET`) inside `assets/data/raw/`, so the path to the files is `assets/data/raw/[DATASET]/`.
+3. Update `params.yaml` with the name of your dataset (`DATASET`), the target variable, and other configuration parameters.
 4. Build Docker container:
 
 ```
