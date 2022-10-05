@@ -24,46 +24,26 @@ Tested on:
 docker build -t d2m -f Dockerfile .
 ```
 
-5. Run an interactive session with a Docker volume:
+5. Run the container:
 
 ```
-docker run -it -v [HOST DIR]:/usr/d2m/assets d2m bash
+docker run -p 5000:5000 -it -v $(pwd)/assets:/usr/d2m/assets d2m
 ```
 
-6. In another terminal, copy `params.yaml` from the host to the container (find `CONTAINER_NAME` by running `docker ps`):
+6. Open the website at localhost:5000 to use the graphical user interface.
+
+
+### Creating models on the command line
+
+
+7. Copy `params.yaml` from the host to the container (find `CONTAINER_NAME` by running `docker ps`):
 
 ```
 docker cp params.yaml  [CONTAINER_NAME]:/usr/d2m/params.yaml
 ```
 
-7. Inside the interactive session in the container, run:
+8. Inside the interactive session in the container, run:
 
 ```
-dvc repro
+docker exec [CONTAINER_NAME] dvc repro
 ```
-
-
-
-## Docker notes
-
-### Building the Docker container
-
-```
-docker build -t d2m -f Dockerfile .
-```
-
-### Running the Docker container
-
-
-Running an interactive session with a Docker volume:
-
-```
-docker run -it -v [HOST DIR]:/usr/d2m/assets d2m bash
-```
-
-Running the Docker container with port forwarding in order to access the API (NB: NOT WORKING WITH THE CURRENT DOCKER IMAGE):
-
-```
-docker run -p 5000:5000 -it -v [HOST DIR]:/usr/d2m/assets d2m
-```
-
