@@ -168,3 +168,15 @@ stages:
         metrics:
         - assets/metrics/metrics.json
 
+    explain:
+        cmd: python3 src/explain.py assets/models/model.h5 assets/data/combined/train.npz assets/data/combined/test.npz
+        deps:
+        - assets/data/combined/test.npz
+        - assets/features/input_columns.csv
+        - assets/models/model.h5
+        - src/explain.py
+        - src/config.py
+        params:
+        # Number of samples to use for generating shap values
+        - explain.number_of_background_samples
+        - explain.number_of_summary_samples

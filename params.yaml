@@ -99,3 +99,7 @@ train:
 
 evaluate:
     show_inputs: True
+
+explain: 
+    number_of_background_samples: 10
+    number_of_summary_samples: 20

@@ -34,37 +34,31 @@ def combine(dir_path):
     train_outputs = []
     test_inputs = []
     test_outputs = []
-    calibrate_inputs = []
-    calibrate_outputs = []
 
     for filepath in filepaths:
         infile = np.load(filepath)
 
+        X = infile["X"]
+        y = infile["y"]
+
+        if X.size == 0 or y.size == 0:
+            print(f"Skipped {filepath} because it is emtpy")
+            continue
+
         if "train" in filepath:
-            train_inputs.append(infile["X"])
-            train_outputs.append(infile["y"])
+            train_inputs.append(X)
+            train_outputs.append(y)
         elif "test" in filepath:
-            test_inputs.append(infile["X"])
-            test_outputs.append(infile["y"])
-        elif "calibrate" in filepath:
-            calibrate_inputs.append(infile["X"])
-            calibrate_outputs.append(infile["y"])
+            test_inputs.append(X)
+            test_outputs.append(y)
 
     X_train = np.concatenate(train_inputs)
     y_train = np.concatenate(train_outputs)
     X_test = np.concatenate(test_inputs)
     y_test = np.concatenate(test_outputs)
 
-    if len(calibrate_inputs) > 0:
-        X_calibrate = np.concatenate(calibrate_inputs)
-        y_calibrate = np.concatenate(calibrate_outputs)
-
     np.savez(DATA_COMBINED_PATH / "train.npz", X=X_train, y=y_train)
     np.savez(DATA_COMBINED_PATH / "test.npz", X=X_test, y=y_test)
-
-    if len(calibrate_inputs) > 0:
-        np.savez(DATA_COMBINED_PATH / "calibrate.npz", X=X_calibrate, y=y_calibrate)
-
 
 if __name__ == "__main__":
 
