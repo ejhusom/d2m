@@ -87,6 +87,9 @@ FEATURES_PATH = ASSETS_PATH / "features"
 INPUT_FEATURES_PATH = FEATURES_PATH / "input_columns.csv"
 """Path to file containing input features."""
 
+INPUT_FEATURES_SEQUENCE_PATH = FEATURES_PATH / "input_columns_sequence.csv"
+"""Path to file containing input features."""
+
 OUTPUT_FEATURES_PATH = FEATURES_PATH / "output_columns.csv"
 """Path to file containing output features."""
 

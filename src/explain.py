@@ -124,7 +124,7 @@ def explain(
 
         # SHAP summary plot
         shap.summary_plot(shap_values, X_test_summary,
-                feature_names=input_columns, plot_size=(8,5), show=True)
+                feature_names=input_columns, plot_size=(8,5), show=False)
         plt.savefig(PLOTS_PATH / "shap_summary_plot.png", bbox_inches='tight', dpi=300)
     else:
         # Extract a summary of the training inputs, to reduce the amount of
