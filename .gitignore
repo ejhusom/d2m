@@ -54,4 +54,5 @@ assets/scalers/
 assets/predictions/
 assets/features/
 models.json
+assets/models_api.json
 

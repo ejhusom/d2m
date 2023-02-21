@@ -126,6 +126,8 @@ MODELS_PATH = ASSETS_PATH / "models"
 MODELS_FILE_PATH = MODELS_PATH / "model.h5"
 """Path to model file."""
 
+API_MODELS_PATH = ASSETS_PATH / "models_api.json"
+
 METRICS_PATH = ASSETS_PATH / "metrics"
 """Path to folder containing metrics file."""
 

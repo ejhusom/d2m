@@ -27,7 +27,7 @@ docker build -t d2m -f Dockerfile .
 5. Run the container:
 
 ```
-docker run -p 5000:5000 -it -v $(pwd)/assets:/usr/d2m/assets d2m
+docker run -p 5000:5000 -it -v $(pwd)/assets:/usr/d2m/assets -v $(pwd)/.dvc:/usr/d2m/.dvc $d2m
 ```
 
 6. Open the website at localhost:5000 to use the graphical user interface.

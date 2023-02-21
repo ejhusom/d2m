@@ -27,7 +27,7 @@ import yaml
 from flask_restful import Api, Resource, reqparse
 from plotly.subplots import make_subplots
 
-from config import METRICS_FILE_PATH
+from config import METRICS_FILE_PATH, API_MODELS_PATH
 from evaluate import plot_prediction
 from virtualsensor import VirtualSensor
 
@@ -72,7 +72,7 @@ def prediction():
 def get_models():
 
     try:
-        models = json.load(open("models.json"))
+        models = json.load(open(API_MODELS_PATH))
     except:
         models = {}
 
@@ -83,7 +83,7 @@ class CreateModel(Resource):
     def get(self):
 
         try:
-            models = json.load(open("models.json"))
+            models = json.load(open(API_MODELS_PATH))
             return models, 200
         except:
             return {"message": "No models exist."}, 401
@@ -121,14 +121,14 @@ class CreateModel(Resource):
         model_metadata["metrics"] = metrics
 
         try:
-            models = json.load(open("models.json"))
+            models = json.load(open(API_MODELS_PATH))
         except:
             models = {}
 
         models[model_id] = model_metadata
         print(models)
 
-        json.dump(models, open("models.json", "w+"))
+        json.dump(models, open(API_MODELS_PATH, "w+"))
 
         return flask.redirect("create_model_form")
 
