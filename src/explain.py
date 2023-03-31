@@ -60,7 +60,11 @@ def explain(
     ]
     number_of_background_samples = params["number_of_background_samples"]
     number_of_summary_samples = params["number_of_summary_samples"]
+    generate_explanations = params["generate_explanations"]
     learning_method = params_train["learning_method"]
+
+    if not generate_explanations:
+        return 0
 
     # Load training data
     train = np.load(train_filepath)
@@ -126,6 +130,11 @@ def explain(
                 feature_names=input_columns, plot_size=(8,5), show=False)
         plt.savefig(PLOTS_PATH / "shap_summary_plot.png", bbox_inches='tight', dpi=300)
     else:
+
+        if learning_method == "rnn":
+            print("SHAP cannot be used with RNN models. Refer to the following issue: https://github.com/slundberg/shap/issues/2808")
+            return 0
+
         # Extract a summary of the training inputs, to reduce the amount of
         # compute needed to use SHAP
         X_train_background = shap.sample(X_train, number_of_background_samples)
@@ -135,12 +144,13 @@ def explain(
         explainer = shap.DeepExplainer(model, X_train_background)
 
         # Single prediction explanation
-        single_sample = X_test[:1]
-        single_shap_value = explainer.shap_values(single_sample)[0]
+        # single_sample = X_test[:1]
+        # single_shap_value = explainer.shap_values(single_sample)[0]
+
         shap_values = explainer.shap_values(X_test_summary)[0]
 
         # SHAP force plot: Single prediction
-        shap_force_plot_single = shap.force_plot(explainer.expected_value, shap_values[0,:],
+        shap_force_plot_single = shap.force_plot(explainer.expected_value.numpy(), shap_values[0,:],
                 X_test_summary[0,:], feature_names=input_columns)
         shap.save_html(str(PLOTS_PATH) + "/shap_force_plot_single.html",
                 shap_force_plot_single)

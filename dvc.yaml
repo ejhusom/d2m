@@ -182,3 +182,4 @@ stages:
         # Number of samples to use for generating shap values
         - explain.number_of_background_samples
         - explain.number_of_summary_samples
+        - explain.generate_explanations

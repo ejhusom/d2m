@@ -1,8 +1,8 @@
 profile:
-    dataset: cnc_milling
+    dataset: air_quality
 
 clean:
-    target: X1_ActualPosition
+    target: AH
     classification: False
     onehot_encode_target: False
     combine_files: False
@@ -13,6 +13,8 @@ clean:
 featurize:
     # If empty, all input variables are used
     variables_to_include:
+      - T
+      - RH
         # - variable1
         # - variable2
 
@@ -52,6 +54,8 @@ featurize:
     # List features here to remove the raw variables after engineering features
     # from them
     remove_features:
+      - Date
+      - Time
         # - variable1
     target_min_correlation_threshold: 0.0
 
@@ -72,7 +76,7 @@ sequentialize:
 
 train:
     seed: 2020
-    learning_method: cnn
+    learning_method: dnn
     hyperparameter_tuning: False
 
     # Parameters for deep learning (dnn, cnn, lstm etc):
@@ -95,7 +99,7 @@ train:
     maxpooling_size: 4
 
     # Parameters for rnn:
-    unit_type: LSTM
+    unit_type: rnn
 
 evaluate:
     dropout_uncertainty_estimation: True
@@ -103,5 +107,6 @@ evaluate:
     show_inputs: False
 
 explain: 
+    generate_explanations: True
     number_of_background_samples: 10
     number_of_summary_samples: 20

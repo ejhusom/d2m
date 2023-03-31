@@ -388,7 +388,7 @@ def plot_prediction(y_true, y_pred, inputs=None, info="", y_pred_uncertainty=Non
             go.Scatter(
                 name="Uncertainty bottom",
                 x=x,
-                y=y_pred - y_pred_uncertainty,
+                y=y_pred - 1.96*y_pred_uncertainty,
                 line=dict(width=0),
                 showlegend=False,
             ),
@@ -397,7 +397,7 @@ def plot_prediction(y_true, y_pred, inputs=None, info="", y_pred_uncertainty=Non
             go.Scatter(
                 name="Uncertainty",
                 x=x,
-                y=y_pred + y_pred_uncertainty,
+                y=y_pred + 1.96*y_pred_uncertainty,
                 line=dict(width=0),
                 fillcolor="rgba(68, 68, 68, 0.3)",
                 fill="tonexty",
