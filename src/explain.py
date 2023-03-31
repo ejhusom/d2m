@@ -21,7 +21,6 @@ import yaml
 from joblib import load
 from matplotlib.colors import LinearSegmentedColormap
 from tensorflow.keras import models
-tf.compat.v1.disable_v2_behavior()
 
 from config import (
     DATA_PATH,

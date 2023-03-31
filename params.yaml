@@ -72,11 +72,11 @@ sequentialize:
 
 train:
     seed: 2020
-    learning_method: xgboost
+    learning_method: cnn
     hyperparameter_tuning: False
 
     # Parameters for deep learning (dnn, cnn, lstm etc):
-    n_epochs: 200
+    n_epochs: 500
     early_stopping: True
     patience: 20
     activation_function: relu
@@ -98,7 +98,9 @@ train:
     unit_type: LSTM
 
 evaluate:
-    show_inputs: True
+    dropout_uncertainty_estimation: True
+    uncertainty_estimation_sampling_size: 1000
+    show_inputs: False
 
 explain: 
     number_of_background_samples: 10

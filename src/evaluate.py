@@ -33,6 +33,8 @@ from sklearn.metrics import (
 )
 from sklearn.neighbors import KNeighborsRegressor
 from tensorflow.keras import metrics, models
+from scipy.sparse import coo_matrix
+from sklearn.utils.multiclass import unique_labels
 
 import neural_networks as nn
 
@@ -70,12 +72,15 @@ def evaluate(model_filepath, train_filepath, test_filepath):
     onehot_encode_target = yaml.safe_load(open("params.yaml"))["clean"][
         "onehot_encode_target"
     ]
+    dropout_uncertainty_estimation = params["dropout_uncertainty_estimation"]
+    uncertainty_estimation_sampling_size = params["uncertainty_estimation_sampling_size"]
     show_inputs = params["show_inputs"]
     learning_method = params_train["learning_method"]
 
     test = np.load(test_filepath)
     X_test = test["X"]
     y_test = test["y"]
+    y_pred_uncertainty = None
 
     if show_inputs:
         inputs = X_test
@@ -95,7 +100,28 @@ def evaluate(model_filepath, train_filepath, test_filepath):
         y_pred = model.predict(X_test)
     else:
         model = models.load_model(model_filepath)
-        y_pred = model.predict(X_test)
+
+        if dropout_uncertainty_estimation:
+            predictions = []
+
+            for i in range(uncertainty_estimation_sampling_size):
+                predictions.append(model(X_test, training=True))
+
+            predictions = np.stack(predictions, -1)
+            mean = np.mean(predictions, axis=-1)
+
+            if classification:
+                entropy = - np.sum(predictions * np.log(predictions + 1e-15), axis=-1)
+                uncertainty = entropy
+            else:
+                uncertainty = np.std(predictions, axis=-1)
+
+            y_pred = mean
+            y_pred_uncertainty = uncertainty
+            pd.DataFrame(y_pred_uncertainty).to_csv(PREDICTIONS_PATH /
+                    "predictions_uncertainty.csv")
+        else:
+            y_pred = model.predict(X_test)
 
     if onehot_encode_target:
         y_pred = np.argmax(y_pred, axis=-1)
@@ -112,11 +138,10 @@ def evaluate(model_filepath, train_filepath, test_filepath):
 
         plot_prediction(y_test, y_pred, info="Accuracy: {})".format(accuracy))
 
-        plot_confusion(y_test, y_pred)
+        plot_confusion(y_test, y_pred, y_pred_uncertainty)
 
         with open(METRICS_FILE_PATH, "w") as f:
             json.dump(dict(accuracy=accuracy), f)
-
 
     # Regression:
     else:
@@ -125,7 +150,8 @@ def evaluate(model_filepath, train_filepath, test_filepath):
         mape = mean_absolute_percentage_error(y_test, y_pred)
         r2 = r2_score(y_test, y_pred)
 
-        plot_prediction(y_test, y_pred, inputs=inputs, info=f"(R2: {r2:.2f})")
+        plot_prediction(y_test, y_pred, inputs=inputs, info=f"(R2: {r2:.2f})",
+                        y_pred_uncertainty=y_pred_uncertainty)
         plot_true_vs_pred(y_test, y_pred)
 
         print("MSE: {}".format(mse))
@@ -164,7 +190,7 @@ def evaluate(model_filepath, train_filepath, test_filepath):
 
     save_predictions(pd.DataFrame(y_pred))
 
-def plot_confusion(y_test, y_pred):
+def plot_confusion(y_test, y_pred, y_pred_uncertainty=None):
     """Plotting confusion matrix of a classification model."""
 
     output_columns = np.array(pd.read_csv(OUTPUT_FEATURES_PATH, index_col=0)).reshape(
@@ -187,6 +213,47 @@ def plot_confusion(y_test, y_pred):
     sn.heatmap(df_confusion, cmap="Blues", annot=True, annot_kws={"size": 16})
     plt.savefig(PLOTS_PATH / "confusion_matrix.png")
 
+    if y_pred_uncertainty is not None:
+
+        # Take the average of the entropy per class
+        y_pred_uncertainty = np.mean(y_pred_uncertainty, axis=1)
+
+        cm = coo_matrix(
+                (y_pred_uncertainty, (y_test, y_pred)),
+                shape=(n_labels, n_labels)
+        )
+
+        combined_arr = np.stack((y_test, y_pred), axis=1)
+
+        unique_predictions, counts = np.unique(combined_arr, axis=0, return_counts=True)
+        u_true = unique_predictions[:,0]
+        u_pred = unique_predictions[:,1]
+
+        cm_count = coo_matrix(
+                (counts, (u_true, u_pred)),
+                shape=(n_labels, n_labels)
+        )
+
+        cm = cm / cm_count
+        
+        cm = pd.DataFrame(cm)
+
+        df_confusion.index.name = "True"
+        df_confusion.columns.name = "Pred"
+
+        plt.figure(figsize=(10, 7))
+        sn.heatmap(
+                cm, 
+                cmap="Reds", 
+                annot=df_confusion, 
+                # annot=True,
+                annot_kws={"size": 14},
+                xticklabels=labels,
+                yticklabels=labels,
+        )
+        plt.tight_layout()
+        plt.savefig(PLOTS_PATH / "probablistic_confusion_matrix.png")
+        # plt.show()
 
 def save_predictions(df_predictions):
     """Save the predictions along with the ground truth as a csv file.
@@ -255,7 +322,7 @@ def plot_true_vs_pred(y_true, y_pred):
     plt.savefig(PLOTS_PATH / "true_vs_pred.png")
 
 
-def plot_prediction(y_true, y_pred, inputs=None, info=""):
+def plot_prediction(y_true, y_pred, inputs=None, info="", y_pred_uncertainty=None):
     """Plot the prediction compared to the true targets.
 
     Args:
@@ -265,6 +332,10 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
         inputs (array): Inputs corresponding to the targets passed. If
             provided, the inputs will be plotted together with the targets.
         info (str): Information to include in the title string.
+        y_pred_uncertainty (array): Uncertainty of the true targets.
+
+    Returns:
+        fig (plotly figure): Plotly figure.
 
     """
 
@@ -277,6 +348,8 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
         y_true = y_true[:, -1].reshape(-1)
     if len(y_pred.shape) > 1:
         y_pred = y_pred[:, -1].reshape(-1)
+    if len(y_pred_uncertainty.shape) > 1:
+        y_pred_uncertainty = y_pred_uncertainty[:, -1].reshape(-1)
 
     fig.add_trace(
         go.Scatter(x=x, y=y_true, name="true"),
@@ -309,6 +382,28 @@ def plot_prediction(y_true, y_pred, inputs=None, info=""):
                     go.Scatter(x=x, y=inputs[:, i - n_features], name=input_columns[i]),
                     secondary_y=True,
                 )
+
+    if y_pred_uncertainty is not None:
+        fig.add_trace(
+            go.Scatter(
+                name="Uncertainty bottom",
+                x=x,
+                y=y_pred - y_pred_uncertainty,
+                line=dict(width=0),
+                showlegend=False,
+            ),
+        )
+        fig.add_trace(
+            go.Scatter(
+                name="Uncertainty",
+                x=x,
+                y=y_pred + y_pred_uncertainty,
+                line=dict(width=0),
+                fillcolor="rgba(68, 68, 68, 0.3)",
+                fill="tonexty",
+                showlegend=True,
+            ),
+        )
 
     fig.update_layout(title_text="True vs pred " + info)
     fig.update_xaxes(title_text="time step")

@@ -98,4 +98,10 @@ train:
     unit_type: LSTM
 
 evaluate:
+    dropout_uncertainty_estimation: True
+    uncertainty_estimation_sampling_size: 100
     show_inputs: True
+
+explain: 
+    number_of_background_samples: 10
+    number_of_summary_samples: 20

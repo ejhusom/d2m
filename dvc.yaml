@@ -165,6 +165,8 @@ stages:
         params:
         - clean.classification
         - evaluate.show_inputs
+        - evaluate.dropout_uncertainty_estimation
+        - evaluate.uncertainty_estimation_sampling_size
         metrics:
         - assets/metrics/metrics.json
 
