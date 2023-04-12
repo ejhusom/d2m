@@ -123,6 +123,16 @@ def evaluate(model_filepath, train_filepath, test_filepath):
         else:
             y_pred = model.predict(X_test)
 
+    # Check if the shape of y_pred matches y_test, and if not, reshape y_pred
+    # to match y_test.
+    if y_pred.shape != y_test.shape:
+        if len(y_test.shape) == 1:
+            y_pred = y_pred.reshape(-1)
+        elif len(y_test.shape) == 2:
+            y_pred = y_pred.reshape(-1, y_test.shape[1])
+        else:
+            raise ValueError("y_test has more than 2 dimensions.")
+
     if onehot_encode_target:
         y_pred = np.argmax(y_pred, axis=-1)
     elif classification:
@@ -145,6 +155,11 @@ def evaluate(model_filepath, train_filepath, test_filepath):
 
     # Regression:
     else:
+        print(y_test)
+        print(y_pred)
+        print(y_test.shape)
+        print(y_pred.shape)
+        print("========")
         mse = mean_squared_error(y_test, y_pred)
         rmse = mean_squared_error(y_test, y_pred, squared=False)
         mape = mean_absolute_percentage_error(y_test, y_pred)
@@ -348,7 +363,7 @@ def plot_prediction(y_true, y_pred, inputs=None, info="", y_pred_uncertainty=Non
         y_true = y_true[:, -1].reshape(-1)
     if len(y_pred.shape) > 1:
         y_pred = y_pred[:, -1].reshape(-1)
-    if len(y_pred_uncertainty.shape) > 1:
+    if y_pred_uncertainty is not None and len(y_pred_uncertainty.shape) > 1:
         y_pred_uncertainty = y_pred_uncertainty[:, -1].reshape(-1)
 
     fig.add_trace(

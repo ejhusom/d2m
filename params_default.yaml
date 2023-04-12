@@ -97,6 +97,12 @@ train:
     # Parameters for rnn:
     unit_type: LSTM
 
+    # Parameters for transformer:
+    ff_dim: 4
+    n_transformer_blocks: 4
+    n_heads: 4
+    head_size: 256
+
 evaluate:
     dropout_uncertainty_estimation: True
     uncertainty_estimation_sampling_size: 100

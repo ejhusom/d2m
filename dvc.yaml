@@ -150,6 +150,10 @@ stages:
         - train.maxpooling
         - train.maxpooling_size
         - train.unit_type
+        - train.ff_dim
+        - train.n_transformer_blocks
+        - train.n_heads
+        - train.head_size
 
     evaluate:
         cmd: python3 src/evaluate.py assets/models/model.h5 assets/data/combined/train.npz assets/data/combined/test.npz

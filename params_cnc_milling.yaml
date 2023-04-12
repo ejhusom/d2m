@@ -1,9 +1,7 @@
 profile:
-    # dataset: air_quality
     dataset: cnc_milling
 
 clean:
-    # target: AH
     target: X1_ActualPosition
     classification: False
     onehot_encode_target: False
@@ -15,8 +13,6 @@ clean:
 featurize:
     # If empty, all input variables are used
     variables_to_include:
-      # - T
-      # - RH
         # - variable1
         # - variable2
 
@@ -56,8 +52,6 @@ featurize:
     # List features here to remove the raw variables after engineering features
     # from them
     remove_features:
-      # - Date
-      # - Time
         # - variable1
     target_min_correlation_threshold: 0.0
 
@@ -70,7 +64,7 @@ scale:
     output:
 
 sequentialize:
-    window_size: 10
+    window_size: 1
     overlap: 0
     target_size: 1
     shuffle_samples: False
@@ -78,7 +72,7 @@ sequentialize:
 
 train:
     seed: 2020
-    learning_method: transformer_test
+    learning_method: cnn
     hyperparameter_tuning: False
 
     # Parameters for deep learning (dnn, cnn, lstm etc):
@@ -91,8 +85,8 @@ train:
     n_neurons: [16, 16]
     dropout: 0.1
 
-    # Parameters for cnn, rnn and transformer
-    n_flattened_layers: 2
+    # Parameters for cnn and rnn
+    n_flattened_layers: 1
     n_flattened_nodes: 16
 
     # Parameters for cnn:
@@ -101,20 +95,13 @@ train:
     maxpooling_size: 4
 
     # Parameters for rnn:
-    unit_type: rnn
-
-    # Parameters for transformer:
-    ff_dim: 4
-    n_transformer_blocks: 4
-    n_heads: 4
-    head_size: 256
+    unit_type: LSTM
 
 evaluate:
-    dropout_uncertainty_estimation: False
+    dropout_uncertainty_estimation: True
     uncertainty_estimation_sampling_size: 1000
     show_inputs: False
 
 explain: 
-    generate_explanations: False
     number_of_background_samples: 10
     number_of_summary_samples: 20
