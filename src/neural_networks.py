@@ -305,6 +305,8 @@ def transformer(
     mlp_dropout=0,
     loss="mse",
     metrics="mse",
+    activation_function="relu",
+    output_activation="linear",
 ):
     """Define a Transformer model architecture using Keras.
 
@@ -345,7 +347,8 @@ def transformer(
 
         # Feed Forward Part
         x = layers.LayerNormalization(epsilon=1e-6)(res)
-        x = layers.Conv1D(filters=ff_dim, kernel_size=1, activation="relu")(x)
+        x = layers.Conv1D(filters=ff_dim, kernel_size=1,
+                          activation=activation_function)(x)
         x = layers.Dropout(dropout)(x)
         x = layers.Conv1D(filters=inputs.shape[-1], kernel_size=1)(x)
         x += res
@@ -357,124 +360,13 @@ def transformer(
         x = layers.Dense(dim, activation="relu")(x)
         x = layers.Dropout(mlp_dropout)(x)
 
-    outputs = layers.Dense(output_length, activation="softmax")(x)
+    outputs = layers.Dense(output_length, activation=output_activation)(x)
 
     model = tf.keras.Model(inputs, outputs)
 
     model.compile(optimizer="adam", loss=loss, metrics=metrics)
 
     return model
-
-def transformer_test(
-    input_size_x,
-    input_size_y,
-    output_length=1,
-    activation_function="relu",
-    output_activation="linear",
-    loss="mse",
-    metrics="mse",
-    ff_dim=4,
-    n_layers=2,
-    n_heads=2,
-    n_units=16,
-    n_dense_layers=1,
-    n_nodes=16,
-    dropout=0.1,
-    embedding_dim=16,
-    seed=2020,
-):
-    """Define a Transformer model architecture using Keras.
-
-    Args:
-        input_size_x (int): Number of time steps to include in each sample, i.e. how
-            much history is matched with a given target.
-        input_size_y (int): Number of features for each time step in the input data.
-        output_length (int): Number of output steps.
-        activation_function (str): Activation function in hidden layers.
-        output_activation: Activation function for outputs.
-        loss (str): Loss to penalize during training.
-        metrics (str): Metrics to evaluate model.
-        n_layers (int): Number of hidden layers.
-        n_heads (int): Number of heads in the multi-head attention layer.
-        n_units (int or list of int): Number of units in each layer. If int,
-            all layers have the same number of units. If list, the length of
-            the list must match the number of layers, and each integer of the
-            list specifies the number of units in the corresponding layer.
-        n_dense_layers (int): Number of dense layers after the convolutional
-            layers.
-        n_nodes (int or list of int): Number of nodes in each layer. If int,
-            all layers have the same number of nodes. If list, the length of
-            the list must match the number of layers, and each integer of the
-            list specifies the number of nodes in the corresponding layer.
-        dropout (float or list of float): Dropout, either the same for all
-            layers, or a list specifying dropout for each layer.
-        seed (int): Seed for random initialization of weights.
-
-    Returns:
-        model (keras model): Model to be trained.
-
-    """
-
-    tf.random.set_seed(seed)
-
-    n_units = element2list(n_units, n_layers)
-    n_nodes = element2list(n_nodes, n_dense_layers)
-    # dropout = element2list(dropout, n_layers + n_dense_layers)
-
-    # model = models.Sequential()
-
-    # model.add(
-    #     layers.Input(shape=(input_size_x, input_size_y), name="input_layer")
-    # )
-
-    # # Add transformer layers
-    # for i in range(n_layers):
-    #     model.add(
-    #         layers.MultiHeadAttention(num_heads=n_heads, key_dim=n_units[i], name=f"multi_head_attention_{i}")
-    #     )
-
-    #     model.add(layers.Dropout(dropout[i]))
-
-    # # Add dense layers
-    # for i in range(n_dense_layers):
-    #     model.add(
-    #         layers.Dense(n_nodes[i], activation=activation_function, name=f"dense_{i}")
-    #     )
-
-    #     model.add(layers.Dropout(dropout[n_layers + i]))
-
-    # # Output layer
-    # model.add(
-    #     layers.Dense(output_length, activation=output_activation, name="output_layer")
-    # )
-
-    # # Compile model
-    # model.compile(optimizer="adam", loss=loss, metrics=metrics)
-
-    # Define the input layer with shape (seq_length, n_features)
-    inputs = layers.Input(shape=(input_size_x, input_size_y))
-
-    # Add transformer encoder layers
-    encoder_layer = inputs
-    for i in range(n_layers):
-        encoder_layer = layers.MultiHeadAttention(num_heads=n_heads, key_dim=embedding_dim)(encoder_layer, encoder_layer)
-        encoder_layer = layers.Dropout(dropout)(encoder_layer)
-        encoder_layer = layers.LayerNormalization(epsilon=1e-6)(encoder_layer)
-        encoder_layer = layers.Dense(ff_dim, activation=activation_function)(encoder_layer)
-        encoder_layer = layers.Dropout(dropout)(encoder_layer)
-        encoder_layer = layers.LayerNormalization(epsilon=1e-6)(encoder_layer)
-
-    # Add output layer for regression tasks
-    output_layer = layers.Dense(output_length, activation=output_activation)(encoder_layer)
-
-    # Define the model
-    model = tf.keras.Model(inputs=inputs, outputs=output_layer)
-
-    # Compile the model
-    model.compile(optimizer="adam", loss=loss, metrics=metrics)
-
-    return model
-
 
 class SequentialHyperModel(HyperModel):
     def __init__(self, input_x, input_y=0, n_steps_out=1, loss="mse", metrics="mse"):

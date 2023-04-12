@@ -78,13 +78,13 @@ sequentialize:
 
 train:
     seed: 2020
-    learning_method: transformer_test
+    learning_method: transformer
     hyperparameter_tuning: False
 
     # Parameters for deep learning (dnn, cnn, lstm etc):
     n_epochs: 500
     early_stopping: True
-    patience: 20
+    patience: 200
     activation_function: relu
     batch_size: 256
     n_layers: 2
@@ -107,7 +107,7 @@ train:
     ff_dim: 4
     n_transformer_blocks: 4
     n_heads: 4
-    head_size: 256
+    head_size: 64
 
 evaluate:
     dropout_uncertainty_estimation: False
