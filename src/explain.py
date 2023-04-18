@@ -18,6 +18,7 @@ import shap
 import tensorflow as tf
 import yaml
 
+from codecarbon import track_emissions
 from joblib import load
 from matplotlib.colors import LinearSegmentedColormap
 from tensorflow.keras import models
@@ -45,6 +46,7 @@ for l in np.linspace(0, 1, 100):
     colors.append((255./255, 13./255, 87./255,l))
 red_transparent_blue = LinearSegmentedColormap.from_list("red_transparent_blue", colors)
 
+@track_emissions(project_name="explain")
 def explain(
         model_filepath,
         train_filepath,

@@ -18,6 +18,7 @@ import sys
 import numpy as np
 import pandas as pd
 import yaml
+from codecarbon import track_emissions
 
 from config import (
     DATA_PATH,
@@ -29,6 +30,7 @@ from config import (
 from preprocess_utils import find_files, flatten_sequentialized, split_sequences
 
 
+@track_emissions(project_name="sequentialize")
 def sequentialize(dir_path):
     """Make sequences out of tabular data."""
 

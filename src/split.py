@@ -15,11 +15,13 @@ import sys
 
 import numpy as np
 import yaml
+from codecarbon import track_emissions
 
 from config import DATA_SPLIT_PATH
 from preprocess_utils import find_files
 
 
+@track_emissions(project_name="split")
 def split(dir_path):
     """Split data into train and test set.
 

@@ -13,11 +13,13 @@ import os
 import sys
 
 import numpy as np
+from codecarbon import track_emissions
 
 from config import DATA_COMBINED_PATH
 from preprocess_utils import find_files
 
 
+@track_emissions(project_name="combine")
 def combine(dir_path):
     """Combine data from multiple input files into one dataset.
 

@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 import yaml
+from codecarbon import track_emissions
 from joblib import dump
 from keras_tuner import HyperParameters
 from keras_tuner.tuners import BayesianOptimization, Hyperband, RandomSearch
@@ -67,6 +68,7 @@ from config import (
 )
 
 
+@track_emissions(project_name="train")
 def train(filepath):
     """Train model to estimate power.
 

@@ -16,6 +16,7 @@ Created:
 import os
 import sys
 
+from codecarbon import track_emissions
 import joblib
 import numpy as np
 import pandas as pd
@@ -31,7 +32,7 @@ from config import (
 )
 from preprocess_utils import find_files
 
-
+@track_emissions(project_name="scale")
 def scale(dir_path):
     """Scale training and test data.
 

@@ -20,6 +20,7 @@ import plotly.graph_objects as go
 import seaborn as sn
 import tensorflow as tf
 import yaml
+from codecarbon import track_emissions
 from joblib import load
 from plotly.subplots import make_subplots
 from sklearn.base import RegressorMixin
@@ -52,6 +53,7 @@ from config import (
     PREDICTIONS_PATH,
 )
 
+@track_emissions(project_name="evaluate")
 def evaluate(model_filepath, train_filepath, test_filepath):
     """Evaluate model to estimate power.
 
