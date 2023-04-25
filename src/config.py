@@ -160,3 +160,6 @@ INPUT_SCALER_PATH = SCALER_PATH / "input_scaler.z"
 
 OUTPUT_SCALER_PATH = SCALER_PATH / "output_scaler.z"
 """Path to output scaler."""
+
+OUTPUT_PATH = ASSETS_PATH / "output"
+"""Path to miscellaneous output."""

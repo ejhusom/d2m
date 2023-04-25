@@ -32,6 +32,7 @@ from config import (
     NON_DL_METHODS,
     NON_SEQUENCE_LEARNING_METHODS,
     OUTPUT_FEATURES_PATH,
+    OUTPUT_PATH,
     PLOTS_PATH,
     PREDICTION_PLOT_PATH,
     PREDICTIONS_FILE_PATH,
@@ -166,6 +167,18 @@ def explain(
                 show=False)
         plt.savefig(PLOTS_PATH / "shap_image_plot.png", bbox_inches='tight', dpi=300)
 
+
+    # Create OUTPUT_PATH if it does not exist
+    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
+    
+    # Save feature importances based on the SHAP values
+    shap_values = np.abs(shap_values)
+    shap_values = np.mean(shap_values, axis=0)
+    shap_values = pd.DataFrame(shap_values, columns=["SHAP"])
+    shap_values["feature"] = input_columns
+    shap_values = shap_values.sort_values(by="SHAP", ascending=False)
+    shap_values = shap_values.reset_index(drop=True)
+    shap_values.to_csv(OUTPUT_PATH / "shap_importances.csv", index=False)
 
 def image_plot(shap_values,
           pixel_values = None,

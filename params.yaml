@@ -78,7 +78,7 @@ sequentialize:
 
 train:
     seed: 2020
-    learning_method: transformer
+    learning_method: xgboost
     hyperparameter_tuning: False
 
     # Parameters for deep learning (dnn, cnn, lstm etc):
@@ -115,6 +115,9 @@ evaluate:
     show_inputs: False
 
 explain: 
-    generate_explanations: False
+    generate_explanations: True
     number_of_background_samples: 10
     number_of_summary_samples: 20
+
+llm:
+    dataset_description: Description of the dataset.
