@@ -182,8 +182,20 @@ stages:
         - assets/models/model.h5
         - src/explain.py
         - src/config.py
+        outs:
+        - assets/output/shap_importances.csv
         params:
         # Number of samples to use for generating shap values
         - explain.number_of_background_samples
         - explain.number_of_summary_samples
         - explain.generate_explanations
+
+      # llm:
+      #   cmd: python3 src/llm.py
+      #   deps:
+      #   - src/llm.py
+      #   - assets/output/shap_importances.csv
+      #   outs:
+      #   - assets/output/llm.txt
+      #   params:
+      #   - llm.dataset_description
