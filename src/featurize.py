@@ -31,7 +31,7 @@ from config import (
 from preprocess_utils import find_files, move_column
 
 
-@track_emissions(project_name="featurize")
+@track_emissions(project_name="featurize", offline=True, country_iso_code="NOR")
 def featurize(dir_path="", inference=False, inference_df=None):
     """Clean up inputs and add features to data set.
 

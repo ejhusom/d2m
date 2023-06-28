@@ -46,7 +46,7 @@ for l in np.linspace(0, 1, 100):
     colors.append((255./255, 13./255, 87./255,l))
 red_transparent_blue = LinearSegmentedColormap.from_list("red_transparent_blue", colors)
 
-@track_emissions(project_name="explain")
+@track_emissions(project_name="explain", offline=True, country_iso_code="NOR")
 def explain(
         model_filepath,
         train_filepath,

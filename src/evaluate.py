@@ -53,7 +53,7 @@ from config import (
     PREDICTIONS_PATH,
 )
 
-@track_emissions(project_name="evaluate")
+@track_emissions(project_name="evaluate", offline=True, country_iso_code="NOR")
 def evaluate(model_filepath, train_filepath, test_filepath):
     """Evaluate model to estimate power.
 

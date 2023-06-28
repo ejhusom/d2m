@@ -5,7 +5,7 @@ clean:
   input_max_correlation_threshold: 1.0
   onehot_encode_target: false
   percentage_zeros_threshold: 1.0
-  target: Y1_ActualPosition
+  target: X1_ActualPosition
 evaluate:
   dropout_uncertainty_estimation: true
   show_inputs: true
@@ -13,7 +13,7 @@ evaluate:
 explain:
   number_of_background_samples: 10
   number_of_summary_samples: 20
-  generate_explanations: False
+  generate_explanations: True
 featurize:
   add_gradient: null
   add_maximum: null

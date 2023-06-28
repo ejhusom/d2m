@@ -30,7 +30,7 @@ from config import (
 from preprocess_utils import find_files
 
 
-@track_emissions(project_name="clean")
+@track_emissions(project_name="clean", offline=True, country_iso_code="NOR")
 def clean(dir_path=DATA_PATH_RAW, inference_df=None):
     """Clean up inputs.
 

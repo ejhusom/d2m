@@ -30,7 +30,7 @@ from config import (
 from preprocess_utils import find_files, flatten_sequentialized, split_sequences
 
 
-@track_emissions(project_name="sequentialize")
+@track_emissions(project_name="sequentialize", offline=True, country_iso_code="NOR")
 def sequentialize(dir_path):
     """Make sequences out of tabular data."""
 

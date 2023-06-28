@@ -32,7 +32,7 @@ from config import (
 )
 from preprocess_utils import find_files
 
-@track_emissions(project_name="scale")
+@track_emissions(project_name="scale", offline=True, country_iso_code="NOR")
 def scale(dir_path):
     """Scale training and test data.
 

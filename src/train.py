@@ -68,7 +68,7 @@ from config import (
 )
 
 
-@track_emissions(project_name="train")
+@track_emissions(project_name="train", offline=True, country_iso_code="NOR")
 def train(filepath):
     """Train model to estimate power.
 

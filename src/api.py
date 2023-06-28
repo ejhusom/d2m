@@ -186,6 +186,9 @@ class InferGUI(Resource):
             except:
                 pass
 
+            if params["explain"]["generate_explanations"]:
+
+
             fig.add_trace(
                 go.Scatter(x=x, y=y_pred, name="pred"),
                 secondary_y=False,
