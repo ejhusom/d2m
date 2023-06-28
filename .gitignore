@@ -53,6 +53,7 @@ assets/metrics/
 assets/scalers/
 assets/predictions/
 assets/features/
+assets/output/
 models.json
 assets/models_api.json
 

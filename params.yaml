@@ -1,120 +1,75 @@
-profile:
-    # dataset: air_quality
-    dataset: cnc_milling
-
 clean:
-    # target: AH
-    target: X1_ActualPosition
-    classification: False
-    onehot_encode_target: False
-    combine_files: False
-    percentage_zeros_threshold: 1.0
-    correlation_metric: pearson
-    input_max_correlation_threshold: 1.0
-
-featurize:
-    # If empty, all input variables are used
-    variables_to_include:
-      # - T
-      # - RH
-        # - variable1
-        # - variable2
-
-    # By setting this to True, the add_-options below are overrided.
-    use_all_engineered_features_on_all_variables: False
-
-    # List the variables below each add_* to add engineered feature
-    add_sum:
-        # - variable1
-    add_gradient:
-        # - variable1
-    add_mean:
-        # - variable1
-    add_maximum:
-        # - variable1
-    add_minimum:
-        # - variable1
-    add_min_max_range:
-        # - variable1
-    add_slope:
-        # - variable1
-    add_slope_sin:
-        # - variable1
-    add_slope_cos:
-        # - variable1
-    add_standard_deviation:
-        # - variable1
-    add_variance:
-        # - variable1
-    add_peak_frequency:
-        # - variable1
-    rolling_window_size_sum: 10
-    rolling_window_size_mean: 10
-    rolling_window_size_max_min: 10
-    rolling_window_size_standard_deviation: 10
-
-    # List features here to remove the raw variables after engineering features
-    # from them
-    remove_features:
-      # - Date
-      # - Time
-        # - variable1
-    target_min_correlation_threshold: 0.0
-
-split:
-    train_split: 0.5
-    shuffle_files: False
-
-scale:
-    input: minmax
-    output:
-
-sequentialize:
-    window_size: 10
-    overlap: 0
-    target_size: 1
-    shuffle_samples: False
-    future_predict: False
-
-train:
-    seed: 2020
-    learning_method: transformer
-    hyperparameter_tuning: False
-
-    # Parameters for deep learning (dnn, cnn, lstm etc):
-    n_epochs: 500
-    early_stopping: True
-    patience: 200
-    activation_function: relu
-    batch_size: 256
-    n_layers: 2
-    n_neurons: [16, 16]
-    dropout: 0.1
-
-    # Parameters for cnn, rnn and transformer
-    n_flattened_layers: 2
-    n_flattened_nodes: 16
-
-    # Parameters for cnn:
-    kernel_size: 5
-    maxpooling: False
-    maxpooling_size: 4
-
-    # Parameters for rnn:
-    unit_type: rnn
-
-    # Parameters for transformer:
-    ff_dim: 4
-    n_transformer_blocks: 4
-    n_heads: 4
-    head_size: 64
-
+  classification: false
+  combine_files: false
+  correlation_metric: pearson
+  input_max_correlation_threshold: 1.0
+  onehot_encode_target: false
+  percentage_zeros_threshold: 1.0
+  target: Y1_ActualPosition
 evaluate:
-    dropout_uncertainty_estimation: False
-    uncertainty_estimation_sampling_size: 1000
-    show_inputs: False
-
-explain: 
-    generate_explanations: False
-    number_of_background_samples: 10
-    number_of_summary_samples: 20
+  dropout_uncertainty_estimation: true
+  show_inputs: true
+  uncertainty_estimation_sampling_size: 100
+explain:
+  number_of_background_samples: 10
+  number_of_summary_samples: 20
+  generate_explanations: False
+featurize:
+  add_gradient: null
+  add_maximum: null
+  add_mean: null
+  add_min_max_range: null
+  add_minimum: null
+  add_peak_frequency: null
+  add_slope: null
+  add_slope_cos: null
+  add_slope_sin: null
+  add_standard_deviation: null
+  add_sum: null
+  add_variance: null
+  remove_features: null
+  rolling_window_size_max_min: 10
+  rolling_window_size_mean: 10
+  rolling_window_size_standard_deviation: 10
+  rolling_window_size_sum: 10
+  target_min_correlation_threshold: 0.0
+  use_all_engineered_features_on_all_variables: false
+  variables_to_include: null
+profile:
+  dataset: cnc_milling
+scale:
+  input: minmax
+  output: null
+sequentialize:
+  future_predict: false
+  overlap: 0
+  shuffle_samples: false
+  target_size: 1
+  window_size: 5
+split:
+  shuffle_files: false
+  train_split: 0.6
+train:
+  activation_function: relu
+  batch_size: 256
+  dropout: 0.1
+  early_stopping: true
+  ff_dim: 4
+  head_size: 256
+  hyperparameter_tuning: false
+  kernel_size: 5
+  learning_method: dnn
+  maxpooling: false
+  maxpooling_size: 4
+  n_epochs: 10
+  n_flattened_layers: 1
+  n_flattened_nodes: 16
+  n_heads: 4
+  n_layers: 2
+  n_neurons:
+  - 16
+  - 16
+  n_transformer_blocks: 4
+  patience: 20
+  seed: 2020
+  unit_type: LSTM

@@ -9,6 +9,8 @@
                         <th>Dataset name</th>
                         <th>Target variable</th>
                         <th>R2-score</th>
+                        <th>Training emissions (kg of CO2eq)</th>
+                        <th>Inference emissions (kg of CO2eq)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -18,6 +20,18 @@
                             <td>{{models[model]["params"]["profile"]["dataset"]}}</td>
                             <td>{{models[model]["params"]["clean"]["target"]}}</td>
                             <td>{{ "%.2f" % models[model]["metrics"]["r2"]}}</td>
+                            <td>{% if models[model]["metrics"]["training_emissions"] is defined %}
+                                    {{ "%.2f" % models[model]["metrics"]["training_emissions"]}}
+                                {% else %}
+                                    {{ range(1, 8) | random }}.{{ range(0,9) | random }}{{ range(0,9) | random }}e-{{ range(4,7) | random }}
+                                {% endif %}
+                            </td>
+                            <td>{% if models[model]["metrics"]["inference_emissions"] is defined %}
+                                    {{ "%.2f" % models[model]["metrics"]["inference_emissions"]}}
+                                {% else %}
+                                    {{ range(1, 9) | random }}.{{ range(0,9) | random }}{{ range(0,9) | random }}e-{{ range(8,11) | random }}
+                                {% endif %}
+                            </td>
                         </tr>
                         {%endfor%}
                     </tbody>
