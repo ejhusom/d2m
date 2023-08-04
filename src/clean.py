@@ -141,7 +141,7 @@ def remove_features(dfs, removable_features):
     for df in dfs:
 
         # If the first column is an index column, remove it.
-        if df.iloc[:, 0].is_monotonic:
+        if df.iloc[:, 0].is_monotonic_increasing:
             df = df.iloc[:, 1:]
 
         for column in removable_features:
@@ -208,7 +208,7 @@ def parse_profile_warnings():
         messages = profile_json["alerts"]
 
     variables = list(profile_json["variables"].keys())
-    correlations = profile_json["correlations"]["pearson"]
+    correlations = profile_json["correlations"]["auto"]
 
     removable_features = []
 
@@ -217,20 +217,19 @@ def parse_profile_warnings():
 
     for message in messages:
         message = message.split()
-        warning = message[0]
-        variable = " ".join(message[message.index("column") + 1 :])
+        variable = message[0].strip("[]")
 
-        if warning == "[CONSTANT]":
+        if "constant" in message:
             removable_features.append(variable)
             print(f"Removed variable '{variable}' because it is constant.")
-        if warning == "[ZEROS]":
+        if "zeros" in message:
             p_zeros = profile_json["variables"][variable]["p_zeros"]
             if p_zeros > percentage_zeros_threshold:
                 removable_features.append(variable)
                 print(
                     f"Removed variable '{variable}' because % of zeros exceeds {percentage_zeros_threshold*100}%."
                 )
-        if warning == "[HIGH_CORRELATION]":
+        if "correlated" in message:
             try:
                 correlation_scores = correlations[variables.index(variable)]
                 for correlated_variable in correlation_scores:
