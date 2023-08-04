@@ -16,7 +16,7 @@ from pandas_profiling import ProfileReport
 from config import PROFILE_PATH
 from preprocess_utils import find_files
 
-@track_emissions(project_name="profile")
+@track_emissions(project_name="profiling", offline=True, country_iso_code="NOR")
 def profiling(dir_path):
     """Creates a profile report of a data set.
 

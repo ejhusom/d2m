@@ -448,7 +448,7 @@ def train(filepath):
             )
 
             model_checkpoint = ModelCheckpoint(
-                MODELS_FILE_PATH, monitor="val_" + monitor_metric  # , save_best_only=True
+                str(MODELS_FILE_PATH), monitor="val_" + monitor_metric  # , save_best_only=True
             )
 
             # Train model for 10 epochs before adding early stopping

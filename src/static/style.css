@@ -119,6 +119,69 @@ tr:nth-child(even) {
     background-color: #dddddd;
 }
 
+.tooltip {
+    /* position: relative; */
+    display: inline-block;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 1px;
+    color: #fff;
+    background-color: #333;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    /* width: 250px; */
+    background-color: black;
+    color: #fff;
+    text-align: left;
+    border-radius: 6px;
+    padding: 10px;
+
+    /* Position the tooltip */
+    position: absolute;
+    /* z-index: 1; */
+    /* top: 50%; */
+    /* right: 10%; */
+}
+
+.yo {
+    background-color: black;
+    color: #fff;
+    text-align: left;
+    border-radius: 6px;
+    padding: 10px;
+
+    /* Position the tooltip */
+    position: absolute;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+}
+
+.header-tooltip .header-tooltiptext {
+    visibility: hidden;
+    width: 350px;
+    background-color: #111;
+    color: #fff;
+    text-align: left;
+    padding: 10px;
+    border-radius: 6px;
+    /* border: 3px solid white; */
+
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+    top: 100%;
+    right: 30%;
+}
+
+.header-tooltip:hover .header-tooltiptext {
+    visibility: visible;
+}
+
 #loaderContainer {
     display: inline;
     height: 40px;

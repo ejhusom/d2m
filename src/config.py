@@ -163,3 +163,5 @@ OUTPUT_SCALER_PATH = SCALER_PATH / "output_scaler.z"
 
 OUTPUT_PATH = ASSETS_PATH / "output"
 """Path to miscellaneous output."""
+
+SHAP_IMPORTANCES_PATH = OUTPUT_PATH / "shap_importances.csv"

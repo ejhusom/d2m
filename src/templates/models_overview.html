@@ -18,7 +18,21 @@
                         <tr>
                             <td>{{models[model]["id"]}}</td>
                             <td>{{models[model]["params"]["profile"]["dataset"]}}</td>
-                            <td>{{models[model]["params"]["clean"]["target"]}}</td>
+                            <td class=tooltip>{{models[model]["params"]["clean"]["target"]}} &#9432;
+                                {% if models[model]["feature_importances"] is defined %}
+                                    <span class=tooltiptext>
+                                        Feature importances:<br>
+                                    {%for feature_importance in models[model]["feature_importances"]%}<br>
+                                    {{ "%6.2f" % models[model]["feature_importances"][feature_importance]}} – {{feature_importance}}
+                                    {%endfor%}
+                                </span>
+                                {% else %}
+                                    <span class=tooltiptext>
+                                        No feature importances.
+                                    </span>
+                                {% endif %}
+
+                            </td>
                             <td>{{ "%.2f" % models[model]["metrics"]["r2"]}}</td>
                             <td>{% if models[model]["metrics"]["training_emissions"] is defined %}
                                     {{ "%.2f" % models[model]["metrics"]["training_emissions"]}}
