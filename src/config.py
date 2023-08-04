@@ -24,6 +24,8 @@ NON_DL_METHODS = [
     "rf",
     "explainableboosting",
     "xgboost",
+    "xgb",
+    "lgbm",
     "lda",
     "qda",
     "svm",
@@ -36,6 +38,7 @@ NON_DL_METHODS = [
     "elasticnet",
     "sgd",
     "kneighbors",
+    "kn",
     "gb",
     "gradientboosting",
 ]
@@ -49,6 +52,8 @@ NON_SEQUENCE_LEARNING_METHODS = [
     "dt",
     "rf",
     "xgboost",
+    "xgb",
+    "lgbm",
     "explainableboosting",
     "lda",
     "qda",
@@ -62,10 +67,27 @@ NON_SEQUENCE_LEARNING_METHODS = [
     "elasticnet",
     "sgd",
     "kneighbors",
+    "kn",
     "gb",
     "gradientboosting",
 ]
 
+METHODS_IN_ENSEMBLE = [
+    "dt",
+    "rf",
+    "gb",
+    "xgb",
+    "sgd",
+    "lgbm",
+    # "dnn",
+    # "svm",
+    # "kn",
+]
+
+EXPLANATION_METHODS = [
+    "shap",
+    "lime",
+]
 
 # PATHS
 
@@ -164,4 +186,8 @@ OUTPUT_SCALER_PATH = SCALER_PATH / "output_scaler.z"
 OUTPUT_PATH = ASSETS_PATH / "output"
 """Path to miscellaneous output."""
 
-SHAP_IMPORTANCES_PATH = OUTPUT_PATH / "shap_importances.csv"
+ADEQUATE_MODELS_PATH = ASSETS_PATH / "adequate_models"
+"""Path to list of adequate models."""
+
+ADEQUATE_MODELS_FILE_PATH = ADEQUATE_MODELS_PATH / "adequate_models.json"
+"""Path to list of adequate models."""

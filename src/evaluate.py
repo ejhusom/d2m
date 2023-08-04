@@ -9,6 +9,7 @@ Created:
 
 """
 import json
+import os
 import shutil
 import sys
 
@@ -26,6 +27,9 @@ from plotly.subplots import make_subplots
 from sklearn.base import RegressorMixin
 from sklearn.metrics import (
     accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
     confusion_matrix,
     explained_variance_score,
     mean_absolute_percentage_error,
@@ -41,10 +45,15 @@ import neural_networks as nn
 
 import neural_networks as nn
 from config import (
+    ADEQUATE_MODELS_PATH,
     DATA_PATH,
+    DL_METHODS,
     INPUT_FEATURES_PATH,
     INTERVALS_PLOT_PATH,
+    METHODS_IN_ENSEMBLE,
     METRICS_FILE_PATH,
+    MODELS_FILE_PATH,
+    MODELS_PATH,
     NON_DL_METHODS,
     OUTPUT_FEATURES_PATH,
     PLOTS_PATH,
@@ -71,13 +80,29 @@ def evaluate(model_filepath, train_filepath, test_filepath):
     params_train = yaml.safe_load(open("params.yaml"))["train"]
     params_split = yaml.safe_load(open("params.yaml"))["split"]
     classification = yaml.safe_load(open("params.yaml"))["clean"]["classification"]
+    window_size = yaml.safe_load(open("params.yaml"))["sequentialize"]["window_size"]
     onehot_encode_target = yaml.safe_load(open("params.yaml"))["clean"][
         "onehot_encode_target"
     ]
     dropout_uncertainty_estimation = params["dropout_uncertainty_estimation"]
     uncertainty_estimation_sampling_size = params["uncertainty_estimation_sampling_size"]
     show_inputs = params["show_inputs"]
+    performance_metric = params["performance_metric"]
+    threshold_for_ensemble_models = params["threshold_for_ensemble_models"]
     learning_method = params_train["learning_method"]
+    ensemble = params_train["ensemble"]
+
+    if performance_metric == "auto":
+        if classification:
+            performance_metric = "accuracy"
+        else:
+            performance_metric = "r2"
+
+    if threshold_for_ensemble_models == "auto":
+        if classification:
+            threshold_for_ensemble_models = 0.75
+        else:
+            threshold_for_ensemble_models = 0.5
 
     test = np.load(test_filepath)
     X_test = test["X"]
@@ -92,6 +117,124 @@ def evaluate(model_filepath, train_filepath, test_filepath):
     PREDICTIONS_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(y_test).to_csv(PREDICTIONS_PATH / "true_values.csv")
 
+    if ensemble:
+        model_names = []
+        y_preds = {}
+        metrics = []
+        # info = ". "
+
+        for f in os.listdir(MODELS_PATH):
+            if f.startswith("model"):
+                model_names.append(f)
+
+        model_names = sorted(model_names)
+
+        for name in model_names:
+            method = os.path.splitext(name)[0].split("_")[-1]
+            if method in DL_METHODS:
+                model = models.load_model(MODELS_PATH / name)
+            else:
+                model = load(MODELS_PATH / name)
+
+            y_pred = model.predict(X_test)
+            y_preds[method] = y_pred
+
+        adequate_models = {}
+
+        if classification:
+
+            if onehot_encode_target:
+                y_test = np.argmax(y_test, axis=-1)
+
+            metrics = {}
+
+            for name in model_names:
+                method = os.path.splitext(name)[0].split("_")[-1]
+                y_pred = y_preds[method]
+                accuracy = accuracy_score(y_test, y_pred)
+                precision = precision_score(y_test, y_pred)
+                recall = recall_score(y_test, y_pred)
+                f1 = f1_score(y_test, y_pred)
+
+                print(f"{name} precision: {precision}")
+                print(f"{name} recall: {recall}")
+                print(f"{name} F1: {f1}")
+                print(f"{name} accuracy: {accuracy}")
+                metrics[name] = accuracy
+
+                if accuracy >= threshold_for_ensemble_models:
+                    adequate_models[name] = accuracy
+
+                y_preds[method + f" ({accuracy:.2f})"] = y_preds.pop(method)
+
+            # plot_prediction(y_test, y_pred, info="Accuracy: {})".format(accuracy))
+            # plot_confusion(y_test, y_pred)
+
+            with open(METRICS_FILE_PATH, "w") as f:
+                json.dump(metrics, f)
+
+        # Regression:
+        else:
+            metrics = {}
+
+            for name in model_names:
+                method = os.path.splitext(name)[0].split("_")[-1]
+                print(f"{name}, {method}")
+                y_pred = y_preds[method]
+                metrics[name] = {}
+
+                mse = mean_squared_error(y_test, y_pred)
+                rmse = mean_squared_error(y_test, y_pred, squared=False)
+                mape = mean_absolute_percentage_error(y_test, y_pred)
+                r2 = r2_score(y_test, y_pred)
+
+                metrics[name]["mse"] = mse
+                metrics[name]["rmse"] = rmse
+                metrics[name]["mape"] = mape
+                metrics[name]["r2"] = r2
+                # metrics[name] = r2
+
+                # plot_prediction(y_test, y_pred, inputs=inputs, info=f"(R2: {r2:.2f})")
+                # plot_true_vs_pred(y_test, y_pred)
+
+                # print("MSE: {}".format(mse))
+                # print("RMSE: {}".format(rmse))
+                # print("MAPE: {}".format(mape))
+                # print(f"{name} R2: {r2:.3f}")
+
+                # info += f"{name} {r2:.2f}. "
+                y_preds[method + f" ({r2:.2f})"] = y_preds.pop(method)
+
+                for n in y_preds:
+                    print(n)
+                print("======")
+
+                if metrics[name][performance_metric] >= threshold_for_ensemble_models:
+                    adequate_models[name] = metrics[name][performance_metric]
+
+
+            # # Only plot predicted sequences if the output samples are sequences.
+            # if len(y_test.shape) > 1 and y_test.shape[1] > 1:
+            #     plot_sequence_predictions(y_test, y_pred)
+
+            # with open(METRICS_FILE_PATH, "w") as f:
+            #     json.dump(dict(mse=mse, rmse=rmse, mape=mape, r2=r2), f)
+            with open(METRICS_FILE_PATH, "w") as f:
+                json.dump(metrics, f)
+
+            ADEQUATE_MODELS_PATH.mkdir(parents=True, exist_ok=True)
+
+            with open(ADEQUATE_MODELS_PATH / "adequate_models.json", "w") as f:
+                json.dump(adequate_models, f)
+
+            # save_predictions(pd.DataFrame(y_pred))
+
+        plot_prediction(y_test, y_preds, inputs=inputs, info="ensemble")
+
+        return 0
+    else:
+        model_filepath = MODELS_FILE_PATH
+
     # pandas data frame to store predictions and ground truth.
     df_predictions = None
 
@@ -103,7 +246,7 @@ def evaluate(model_filepath, train_filepath, test_filepath):
     else:
         model = models.load_model(model_filepath)
 
-        if dropout_uncertainty_estimation:
+        if dropout_uncertainty_estimation and not ensemble:
             predictions = []
 
             for i in range(uncertainty_estimation_sampling_size):
@@ -356,6 +499,11 @@ def plot_prediction(y_true, y_pred, inputs=None, info="", y_pred_uncertainty=Non
 
     """
 
+    if isinstance(y_pred, dict):
+        ensemble = True
+    else:
+        ensemble = False
+
     PREDICTION_PLOT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     x = np.linspace(0, y_true.shape[0] - 1, y_true.shape[0])
@@ -363,20 +511,32 @@ def plot_prediction(y_true, y_pred, inputs=None, info="", y_pred_uncertainty=Non
 
     if len(y_true.shape) > 1:
         y_true = y_true[:, -1].reshape(-1)
-    if len(y_pred.shape) > 1:
-        y_pred = y_pred[:, -1].reshape(-1)
-    if y_pred_uncertainty is not None and len(y_pred_uncertainty.shape) > 1:
-        y_pred_uncertainty = y_pred_uncertainty[:, -1].reshape(-1)
+    if ensemble:
+        for arr in y_pred:
+            if len(y_pred[arr].shape) > 1:
+                y_pred[arr] = y_pred[arr][:, -1].reshape(-1)
+    else:
+        if len(y_pred.shape) > 1:
+            y_pred = y_pred[:, -1].reshape(-1)
+        if y_pred_uncertainty is not None and len(y_pred_uncertainty.shape) > 1:
+            y_pred_uncertainty = y_pred_uncertainty[:, -1].reshape(-1)
 
     fig.add_trace(
         go.Scatter(x=x, y=y_true, name="true"),
         secondary_y=False,
     )
 
-    fig.add_trace(
-        go.Scatter(x=x, y=y_pred, name="pred"),
-        secondary_y=False,
-    )
+    if ensemble:
+        for arr in y_pred:
+            fig.add_trace(
+                go.Scatter(x=x, y=y_pred[arr], name=arr),
+                secondary_y=False,
+            )
+    else:
+        fig.add_trace(
+            go.Scatter(x=x, y=y_pred, name="pred"),
+            secondary_y=False,
+        )
 
     if inputs is not None:
         input_columns = pd.read_csv(INPUT_FEATURES_PATH, index_col=0)
@@ -486,7 +646,7 @@ if __name__ == "__main__":
             evaluate(
                 "assets/models/model.h5",
                 "assets/data/combined/train.npz",
-                "assets/data/combined/test.npz"
+                "assets/data/combined/test.npz",
             )
         except:
             print("Could not find model and test set.")

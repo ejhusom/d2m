@@ -40,6 +40,7 @@ def sequentialize(dir_path):
 
     params = yaml.safe_load(open("params.yaml"))["sequentialize"]
     learning_method = yaml.safe_load(open("params.yaml"))["train"]["learning_method"]
+    ensemble = yaml.safe_load(open("params.yaml"))["train"]["ensemble"]
     classification = yaml.safe_load(open("params.yaml"))["clean"]["classification"]
     future_predict = params["future_predict"]
     overlap = params["overlap"]
@@ -77,7 +78,7 @@ def sequentialize(dir_path):
             overlap=overlap,
         )
 
-        if learning_method in NON_SEQUENCE_LEARNING_METHODS:
+        if learning_method in NON_SEQUENCE_LEARNING_METHODS or ensemble == True:
             X = flatten_sequentialized(X)
 
         if params["shuffle_samples"]:
@@ -91,6 +92,7 @@ def sequentialize(dir_path):
             / (os.path.basename(filepath).replace("scaled.npz", "sequentialized.npz")),
             X=X,
             y=y,
+            allow_pickle=True
         )
 
 

@@ -89,7 +89,7 @@ def scale(dir_path):
 
     for filepath in filepaths:
 
-        data = np.load(filepath)
+        data = np.load(filepath, allow_pickle=True)
 
         # Split into input (X) and output/target (y)
         X = data[:, n_output_cols:].copy()

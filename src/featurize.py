@@ -123,6 +123,7 @@ def _featurize(df, features, remove_features, params, output_columns):
             del df[col]
 
         # Remove feature if it is non-numeric
+        # FIXME: This sometimes removes features that actually are numeric.
         elif not is_numeric_dtype(df[col]):
             print(f"Removing feature {col} because it is non-numeric.")
             del df[col]
@@ -165,6 +166,8 @@ def compute_rolling_features(df, params, ignore_columns=None):
         df (pandas DataFrame): Data frame with added features.
 
     """
+
+    # TODO: Fix pandas handling
 
     columns = [col for col in df.columns if col not in ignore_columns]
 

@@ -76,6 +76,7 @@ stages:
         params:
         - split.train_split
         - split.shuffle_files
+        - split.shuffle_samples_before_split
 
     scale:
         cmd: python3 src/scale.py assets/data/split/
@@ -135,6 +136,7 @@ stages:
         - clean.classification
         - train.seed
         - train.learning_method
+        - train.ensemble
         - train.hyperparameter_tuning
         - train.n_epochs
         - train.early_stopping
@@ -156,7 +158,7 @@ stages:
         - train.head_size
 
     evaluate:
-        cmd: python3 src/evaluate.py assets/models/model.h5 assets/data/combined/train.npz assets/data/combined/test.npz
+        cmd: python3 src/evaluate.py assets/models/ assets/data/combined/train.npz assets/data/combined/test.npz
         deps:
         - assets/data/combined/test.npz
         - assets/features/output_columns.csv
@@ -164,11 +166,15 @@ stages:
         - src/evaluate.py
         - src/config.py
         outs:
+        - assets/plots/prediction.html
         - assets/predictions/predictions.csv
         - assets/predictions/true_values.csv
         params:
         - clean.classification
+        - train.ensemble
         - evaluate.show_inputs
+        - evaluate.performance_metric
+        - evaluate.threshold_for_ensemble_models
         - evaluate.dropout_uncertainty_estimation
         - evaluate.uncertainty_estimation_sampling_size
         metrics:
@@ -179,15 +185,19 @@ stages:
         deps:
         - assets/data/combined/test.npz
         - assets/features/input_columns.csv
-        - assets/models/model.h5
+        - assets/models/
+        - assets/metrics/metrics.json
         - src/explain.py
         - src/config.py
         outs:
-        - assets/output/shap_importances.csv
+        - assets/features/feature_importances.csv
         params:
+        - train.ensemble
         # Number of samples to use for generating shap values
         - explain.number_of_background_samples
         - explain.number_of_summary_samples
+        - explain.seed
+        - explain.explanation_method
         - explain.generate_explanations
 
       # llm:

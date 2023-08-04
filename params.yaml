@@ -8,12 +8,16 @@ clean:
   target: X1_ActualPosition
 evaluate:
   dropout_uncertainty_estimation: true
+  performance_metric: r2
+  threshold_for_ensemble_models: -1000
   show_inputs: true
   uncertainty_estimation_sampling_size: 100
 explain:
   generate_explanations: true
   number_of_background_samples: 10
   number_of_summary_samples: 20
+  seed: 2020
+  explanation_method: lime
 featurize:
   add_gradient: null
   add_maximum: null
@@ -49,11 +53,13 @@ sequentialize:
 split:
   shuffle_files: false
   train_split: 0.6
+  shuffle_samples_before_split: false
 train:
   activation_function: relu
   batch_size: 256
   dropout: 0.1
   early_stopping: true
+  ensemble: false
   ff_dim: 4
   head_size: 256
   hyperparameter_tuning: false

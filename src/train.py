@@ -21,6 +21,7 @@ import xgboost as xgb
 import yaml
 from codecarbon import track_emissions
 from joblib import dump
+from lightgbm import LGBMClassifier, LGBMRegressor
 from keras_tuner import HyperParameters
 from keras_tuner.tuners import BayesianOptimization, Hyperband, RandomSearch
 from sklearn.discriminant_analysis import (
@@ -47,6 +48,7 @@ from sklearn.linear_model import (
 )
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, roc_auc_score
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.multioutput import MultiOutputRegressor
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -59,6 +61,7 @@ import neural_networks as nn
 from config import (
     DATA_PATH,
     DL_METHODS,
+    METHODS_IN_ENSEMBLE,
     MODELS_FILE_PATH,
     MODELS_PATH,
     NON_DL_METHODS,
@@ -87,6 +90,8 @@ def train(filepath):
     onehot_encode_target = yaml.safe_load(open("params.yaml"))["clean"][
         "onehot_encode_target"
     ]
+
+    ensemble = params["ensemble"]
 
     output_columns = np.array(pd.read_csv(OUTPUT_FEATURES_PATH, index_col=0)).reshape(
         -1
@@ -120,6 +125,68 @@ def train(filepath):
         loss = "mse"
         metrics = "mse"
         monitor_metric = "loss"
+
+    # Create an ensemble
+    # TODO: Make the models in the ensemble into a parameter
+    if ensemble:
+        # model0 = nn.dnn(
+        #     n_features,
+        #     output_length=output_length,
+        #     activation_function=params["activation_function"],
+        #     output_activation=output_activation,
+        #     n_layers=params["n_layers"],
+        #     n_nodes=params["n_neurons"],
+        #     loss=loss,
+        #     metrics=metrics,
+        #     dropout=params["dropout"],
+        #     seed=params["seed"]
+        # )
+        if classification:
+            model0 = DecisionTreeClassifier()
+            model1 = RandomForestClassifier()
+            model2 = GradientBoostingClassifier()
+            model3 = xgb.XGBClassifier()
+            model4 = SGDClassifier()
+            model5 = LGBMClassifier()
+            # model0 = SVC()
+            # model3 = KNeighborsClassifier()
+        else:
+            model0 = DecisionTreeRegressor()
+            model1 = RandomForestRegressor()
+            model2 = GradientBoostingRegressor()
+            model3 = xgb.XGBRegressor()
+            model4 = SGDRegressor()
+            model5 = LGBMRegressor()
+            # model0 = SVR()
+            # model3 = KNeighborsRegressor()
+
+        models = [
+                model0,
+                model1,
+                model2,
+                model3,
+                model4,
+                model5,
+                # model6,
+        ]
+
+
+        for name, model in zip(METHODS_IN_ENSEMBLE, models):
+            if name in DL_METHODS:
+                history = model0.fit(
+                    X_train,
+                    y_train,
+                    epochs=params["n_epochs"],
+                    batch_size=params["batch_size"],
+                    validation_split=0.25,
+                )
+                model.save(MODELS_PATH  / f"model_{name}.h5")
+            else:
+                model.fit(X_train, y_train)
+                dump(model, MODELS_PATH / f"model_{name}.h5")
+
+        return 0
+
 
     # Build model
     if learning_method in DL_METHODS and params["hyperparameter_tuning"]:
@@ -292,7 +359,10 @@ def train(filepath):
         if classification:
             model = xgb.XGBClassifier()
         else:
-            model = xgb.XGBRegressor()
+            if target_size > 1:
+                model = MultiOutputRegressor(xgb.XGBRegressor())
+            else:
+                model = xgb.XGBRegressor()
         if params["hyperparameter_tuning"]:
             model = RandomizedSearchCV(
                 model,
@@ -529,6 +599,6 @@ def plot_neural_network_architecture(model):
 
 if __name__ == "__main__":
 
-    np.random.seed(2021)
+    np.random.seed(2023)
 
     train(sys.argv[1])

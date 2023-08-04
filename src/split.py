@@ -36,6 +36,7 @@ def split(dir_path):
         params = yaml.safe_load(infile)["split"]
 
     shuffle_files = params["shuffle_files"]
+    shuffle_samples_before_split = params["shuffle_samples_before_split"]
 
     DATA_SPLIT_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -46,6 +47,10 @@ def split(dir_path):
         filepath = filepaths[0]
 
         data = np.load(filepath)
+
+        if shuffle_samples_before_split:
+            permutation = np.random.permutation(data.shape[0])
+            data = np.take(data, permutation, axis=0)
 
         train_size = int(len(data) * params["train_split"])
 

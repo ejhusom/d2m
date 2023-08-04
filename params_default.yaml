@@ -58,6 +58,7 @@ featurize:
 split:
     train_split: 0.5
     shuffle_files: False
+     shuffle_samples_before_split: False
 
 scale:
     input: minmax
@@ -73,6 +74,7 @@ sequentialize:
 train:
     seed: 2020
     learning_method: dnn
+     ensemble: True
     hyperparameter_tuning: False
 
     # Parameters for deep learning (dnn, cnn, lstm etc):
@@ -104,6 +106,8 @@ train:
     head_size: 256
 
 evaluate:
+     performance_metric: r2
+     threshold_for_ensemble_models: -1000
     dropout_uncertainty_estimation: True
     uncertainty_estimation_sampling_size: 100
     show_inputs: True
@@ -111,3 +115,5 @@ evaluate:
 explain: 
     number_of_background_samples: 10
     number_of_summary_samples: 20
+     explanation_method: shap
+     seed: 2020
