@@ -28,7 +28,7 @@ from config import (
     REMOVABLE_FEATURES,
 )
 from preprocess_utils import find_files
-
+from utils import Struct
 
 @track_emissions(project_name="clean", offline=True, country_iso_code="NOR")
 def clean(dir_path=DATA_PATH_RAW, inference_df=None):
@@ -42,17 +42,12 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
     """
 
     # Load parameters
-    dataset_name = yaml.safe_load(open("params.yaml"))["profile"]["dataset"]
-    params = yaml.safe_load(open("params.yaml"))
-    combine_files = params["clean"]["combine_files"]
-    target = params["clean"]["target"]
-    classification = params["clean"]["classification"]
-    onehot_encode_target = params["clean"]["onehot_encode_target"]
+    params = Struct(yaml.safe_load(open("params.yaml")))
 
     # If no name of data set is given, all files present in 'assets/data/raw'
     # will be used.
-    if dataset_name is not None and inference_df is None:
-        dir_path += "/" + dataset_name
+    if params.profile.dataset_name is not None and inference_df is None:
+        dir_path += "/" + params.profile.dataset_name
 
     FEATURES_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -80,38 +75,38 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
     combined_df = pd.concat(dfs, ignore_index=True)
 
     if inference_df is not None:
-        if target in inference_df.columns:
-            del combined_df[target]
+        if params.clean.target in inference_df.columns:
+            del combined_df[params.clean.target]
 
         return combined_df
 
-    if classification:
+    if params.clean.classification:
 
-        if onehot_encode_target and len(np.unique(combined_df[target])) > 2:
+        if params.clean.onehot_encode_target and len(np.unique(combined_df[target])) > 2:
             encoder = LabelBinarizer()
         else:
-            if onehot_encode_target:
+            if params.clean.onehot_encode_target:
                 raise ValueError(
                     "Parameter 'onehot_encode_target' is set to True, but target is binary. Change parameter to False in order to use this pipeline."
                 )
             encoder = LabelEncoder()
 
-        target_col = np.array(combined_df[target]).reshape(-1)
+        target_col = np.array(combined_df[params.clean.target]).reshape(-1)
         encoder.fit(target_col)
         # print(f"Classes: {encoder.classes_}")
         # print(f"Encoded classes: {encoder.transform(encoder.classes_)}")
 
-        combined_df, output_columns = encode_target(encoder, combined_df, target)
+        combined_df, output_columns = encode_target(encoder, combined_df, params.clean.target)
 
         for i in range(len(dfs)):
-            dfs[i], _ = encode_target(encoder, dfs[i], target)
+            dfs[i], _ = encode_target(encoder, dfs[i], params.clean.target)
 
     else:
-        output_columns = [target]
+        output_columns = [params.clean.target]
 
     DATA_CLEANED_PATH.mkdir(parents=True, exist_ok=True)
 
-    if combine_files:
+    if params.clean.combine_files:
         combined_df.to_csv(DATA_CLEANED_PATH / (os.path.basename("data-cleaned.csv")))
     else:
         for filepath, df in zip(filepaths, dfs):
