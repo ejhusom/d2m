@@ -46,8 +46,8 @@ def clean(dir_path=DATA_PATH_RAW, inference_df=None):
 
     # If no name of data set is given, all files present in 'assets/data/raw'
     # will be used.
-    if params.profile.dataset_name is not None and inference_df is None:
-        dir_path += "/" + params.profile.dataset_name
+    if params.profile.dataset is not None and inference_df is None:
+        dir_path += "/" + params.profile.dataset
 
     FEATURES_PATH.mkdir(parents=True, exist_ok=True)
 
