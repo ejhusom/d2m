@@ -31,11 +31,8 @@ class PipelineStage():
 
         self.stage_name = stage_name
 
-    def read_params(self):
         # Read parameter file and convert to object
         self.params = Struct(yaml.safe_load(open(PARAMS_FILE_PATH)))
-
-        return self.params
     
     def load_model(self, model_filepath):
 
