@@ -13,7 +13,7 @@ import yaml
 from codecarbon import track_emissions
 from ydata_profiling import ProfileReport
 
-from config import PROFILE_PATH
+from config import DATA_PATH_RAW, PROFILE_PATH
 from preprocess_utils import find_files
 
 @track_emissions(project_name="profiling", offline=True, country_iso_code="NOR")
@@ -66,7 +66,45 @@ def profiling(dir_path):
     # Save report to files.
     profile.to_file(PROFILE_PATH / "profile.html")
     profile.to_file(PROFILE_PATH / "profile.json")
+    
+class ProfileStage(PipelineStage):
+    
+    def __init__(self):
+        super().__init__(self, stage_name="profiling")
+        
+        self.data_path = DATA_PATH_RAW
+        
+    def run():
 
+        # If no name of data set is given, all files present in 'assets/data/raw'
+        # will be used.
+        if self.params.profile.dataset is not None:
+            self.data_path += "/" + self.parama.profile.dataset
+    
+        filepaths = find_files(self.data_path, file_extension=".csv")
+    
+        dfs = []
+    
+        for filepath in filepaths:
+            dfs.append(pd.read_csv(filepath))
+    
+        combined_df = pd.concat(dfs, ignore_index=True)
+    
+        # Generate report.
+        profile = ProfileReport(
+            combined_df,
+            title="Profiling Analysis",
+            config_file="src/profile.yaml",
+            lazy=False,
+            sort=None,
+        )
+    
+        # Create folder for profiling report
+        PROFILE_PATH.mkdir(parents=True, exist_ok=True)
+    
+        # Save report to files.
+        profile.to_file(PROFILE_PATH / "profile.html")
+        profile.to_file(PROFILE_PATH / "profile.json")
 
 if __name__ == "__main__":
 

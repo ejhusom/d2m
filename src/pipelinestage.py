@@ -33,12 +33,12 @@ class PipelineStage():
 
         # Read parameter file and convert to object
         self.params = Struct(yaml.safe_load(open(PARAMS_FILE_PATH)))
-
+    
     def load_model(self, model_filepath):
 
         if self.params.train.learning_method in NON_DL_METHODS:
-            model = load(model_filepath)
+            self.model = load(model_filepath)
         else:
-            model = models.load_model(model_filepath)
+            self.model = models.load_model(model_filepath)
 
         return model
