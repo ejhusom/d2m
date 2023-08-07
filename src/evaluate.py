@@ -44,316 +44,300 @@ from sklearn.utils.multiclass import unique_labels
 import neural_networks as nn
 
 import neural_networks as nn
-from config import (
-    ADEQUATE_MODELS_PATH,
-    DATA_PATH,
-    DL_METHODS,
-    INPUT_FEATURES_PATH,
-    INTERVALS_PLOT_PATH,
-    METHODS_IN_ENSEMBLE,
-    METRICS_FILE_PATH,
-    MODELS_FILE_PATH,
-    MODELS_PATH,
-    NON_DL_METHODS,
-    OUTPUT_FEATURES_PATH,
-    PLOTS_PATH,
-    PREDICTION_PLOT_PATH,
-    PREDICTIONS_FILE_PATH,
-    PREDICTIONS_PATH,
-)
+from config import config
+from pipelinestage import PipelineStage
 
-@track_emissions(project_name="evaluate", offline=True, country_iso_code="NOR")
-def evaluate(model_filepath, train_filepath, test_filepath):
-    """Evaluate model to estimate power.
+# @track_emissions(project_name="evaluate", offline=True, country_iso_code="NOR")
+# def evaluate(model_filepath, train_filepath, test_filepath):
+#     """Evaluate model to estimate power.
 
-    Args:
-        model_filepath (str): Path to model.
-        train_filepath (str): Path to train set.
-        test_filepath (str): Path to test set.
+#     Args:
+#         model_filepath (str): Path to model.
+#         train_filepath (str): Path to train set.
+#         test_filepath (str): Path to test set.
 
-    """
+#     """
+class EvaluateStage(PipelineStage):
 
-    METRICS_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self):
+        super().__init__(stage_name="evaluate")
 
-    # Load parameters
-    params = yaml.safe_load(open("params.yaml"))["evaluate"]
-    params_train = yaml.safe_load(open("params.yaml"))["train"]
-    params_split = yaml.safe_load(open("params.yaml"))["split"]
-    classification = yaml.safe_load(open("params.yaml"))["clean"]["classification"]
-    window_size = yaml.safe_load(open("params.yaml"))["sequentialize"]["window_size"]
-    onehot_encode_target = yaml.safe_load(open("params.yaml"))["clean"][
-        "onehot_encode_target"
-    ]
-    dropout_uncertainty_estimation = params["dropout_uncertainty_estimation"]
-    uncertainty_estimation_sampling_size = params["uncertainty_estimation_sampling_size"]
-    show_inputs = params["show_inputs"]
-    performance_metric = params["performance_metric"]
-    threshold_for_ensemble_models = params["threshold_for_ensemble_models"]
-    learning_method = params_train["learning_method"]
-    ensemble = params_train["ensemble"]
+    def run(self):
 
-    if performance_metric == "auto":
-        if classification:
-            performance_metric = "accuracy"
-        else:
-            performance_metric = "r2"
+        # Load parameters
+        params = yaml.safe_load(open("params.yaml"))["evaluate"]
+        params_train = yaml.safe_load(open("params.yaml"))["train"]
+        params_split = yaml.safe_load(open("params.yaml"))["split"]
+        classification = yaml.safe_load(open("params.yaml"))["clean"]["classification"]
+        window_size = yaml.safe_load(open("params.yaml"))["sequentialize"]["window_size"]
+        onehot_encode_target = yaml.safe_load(open("params.yaml"))["clean"][
+            "onehot_encode_target"
+        ]
+        dropout_uncertainty_estimation = params["dropout_uncertainty_estimation"]
+        uncertainty_estimation_sampling_size = params["uncertainty_estimation_sampling_size"]
+        show_inputs = params["show_inputs"]
+        performance_metric = params["performance_metric"]
+        threshold_for_ensemble_models = params["threshold_for_ensemble_models"]
+        learning_method = params_train["learning_method"]
 
-    if threshold_for_ensemble_models == "auto":
-        if classification:
-            threshold_for_ensemble_models = 0.75
-        else:
-            threshold_for_ensemble_models = 0.5
-
-    test = np.load(test_filepath)
-    X_test = test["X"]
-    y_test = test["y"]
-    y_pred_uncertainty = None
-
-    if show_inputs:
-        inputs = X_test
-    else:
-        inputs = None
-
-    PREDICTIONS_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(y_test).to_csv(PREDICTIONS_PATH / "true_values.csv")
-
-    if ensemble:
-        model_names = []
-        y_preds = {}
-        metrics = []
-        # info = ". "
-
-        for f in os.listdir(MODELS_PATH):
-            if f.startswith("model"):
-                model_names.append(f)
-
-        model_names = sorted(model_names)
-
-        for name in model_names:
-            method = os.path.splitext(name)[0].split("_")[-1]
-            if method in DL_METHODS:
-                model = models.load_model(MODELS_PATH / name)
+        if performance_metric == "auto":
+            if classification:
+                performance_metric = "accuracy"
             else:
-                model = load(MODELS_PATH / name)
+                performance_metric = "r2"
 
+        if threshold_for_ensemble_models == "auto":
+            if classification:
+                threshold_for_ensemble_models = 0.75
+            else:
+                threshold_for_ensemble_models = 0.5
+
+        test = np.load(config.DATA_COMBINED_TEST_PATH)
+        X_test = test["X"]
+        y_test = test["y"]
+        y_pred_uncertainty = None
+
+        if show_inputs:
+            inputs = X_test
+        else:
+            inputs = None
+
+        pd.DataFrame(y_test).to_csv(config.PREDICTIONS_PATH / "true_values.csv")
+
+        if self.params.train.ensemble:
+            model_names = []
+            y_preds = {}
+            metrics = []
+            # info = ". "
+
+            for f in os.listdir(config.MODELS_PATH):
+                if f.startswith("model"):
+                    model_names.append(f)
+
+            model_names = sorted(model_names)
+
+            for name in model_names:
+                method = os.path.splitext(name)[0].split("_")[-1]
+                if method in config.DL_METHODS:
+                    model = models.load_model(config.MODELS_PATH / name)
+                else:
+                    model = load(config.MODELS_PATH / name)
+
+                y_pred = model.predict(X_test)
+                y_preds[method] = y_pred
+
+            adequate_models = {}
+
+            if classification:
+
+                if onehot_encode_target:
+                    y_test = np.argmax(y_test, axis=-1)
+
+                metrics = {}
+
+                for name in model_names:
+                    method = os.path.splitext(name)[0].split("_")[-1]
+                    y_pred = y_preds[method]
+                    accuracy = accuracy_score(y_test, y_pred)
+                    precision = precision_score(y_test, y_pred)
+                    recall = recall_score(y_test, y_pred)
+                    f1 = f1_score(y_test, y_pred)
+
+                    print(f"{name} precision: {precision}")
+                    print(f"{name} recall: {recall}")
+                    print(f"{name} F1: {f1}")
+                    print(f"{name} accuracy: {accuracy}")
+                    metrics[name] = accuracy
+
+                    if accuracy >= threshold_for_ensemble_models:
+                        adequate_models[name] = accuracy
+
+                    y_preds[method + f" ({accuracy:.2f})"] = y_preds.pop(method)
+
+                # plot_prediction(y_test, y_pred, info="Accuracy: {})".format(accuracy))
+                # plot_confusion(y_test, y_pred)
+
+                with open(config.METRICS_FILE_PATH, "w") as f:
+                    json.dump(metrics, f)
+
+            # Regression:
+            else:
+                metrics = {}
+
+                for name in model_names:
+                    method = os.path.splitext(name)[0].split("_")[-1]
+                    print(f"{name}, {method}")
+                    y_pred = y_preds[method]
+                    metrics[name] = {}
+
+                    mse = mean_squared_error(y_test, y_pred)
+                    rmse = mean_squared_error(y_test, y_pred, squared=False)
+                    mape = mean_absolute_percentage_error(y_test, y_pred)
+                    r2 = r2_score(y_test, y_pred)
+
+                    metrics[name]["mse"] = mse
+                    metrics[name]["rmse"] = rmse
+                    metrics[name]["mape"] = mape
+                    metrics[name]["r2"] = r2
+                    # metrics[name] = r2
+
+                    # plot_prediction(y_test, y_pred, inputs=inputs, info=f"(R2: {r2:.2f})")
+                    # plot_true_vs_pred(y_test, y_pred)
+
+                    # print("MSE: {}".format(mse))
+                    # print("RMSE: {}".format(rmse))
+                    # print("MAPE: {}".format(mape))
+                    # print(f"{name} R2: {r2:.3f}")
+
+                    # info += f"{name} {r2:.2f}. "
+                    y_preds[method + f" ({r2:.2f})"] = y_preds.pop(method)
+
+                    for n in y_preds:
+                        print(n)
+                    print("======")
+
+                    if metrics[name][performance_metric] >= threshold_for_ensemble_models:
+                        adequate_models[name] = metrics[name][performance_metric]
+
+
+                # # Only plot predicted sequences if the output samples are sequences.
+                # if len(y_test.shape) > 1 and y_test.shape[1] > 1:
+                #     plot_sequence_predictions(y_test, y_pred)
+
+                # with open(config.METRICS_FILE_PATH, "w") as f:
+                #     json.dump(dict(mse=mse, rmse=rmse, mape=mape, r2=r2), f)
+                with open(config.METRICS_FILE_PATH, "w") as f:
+                    json.dump(metrics, f)
+
+
+                with open(config.ADEQUATE_MODELS_PATH / "adequate_models.json", "w") as f:
+                    json.dump(adequate_models, f)
+
+                # save_predictions(pd.DataFrame(y_pred))
+
+            plot_prediction(y_test, y_preds, inputs=inputs, info="ensemble")
+
+            return 0
+
+        # pandas data frame to store predictions and ground truth.
+        df_predictions = None
+
+        y_pred = None
+
+        if learning_method in config.NON_DL_METHODS:
+            model = load(config.MODELS_FILE_PATH)
             y_pred = model.predict(X_test)
-            y_preds[method] = y_pred
+        else:
+            model = models.load_model(config.MODELS_FILE_PATH)
 
-        adequate_models = {}
+            if dropout_uncertainty_estimation and not self.params.train.ensemble:
+                predictions = []
+
+                for i in range(uncertainty_estimation_sampling_size):
+                    predictions.append(model(X_test, training=True))
+
+                predictions = np.stack(predictions, -1)
+                mean = np.mean(predictions, axis=-1)
+
+                if classification:
+                    entropy = - np.sum(predictions * np.log(predictions + 1e-15), axis=-1)
+                    uncertainty = entropy
+                else:
+                    uncertainty = np.std(predictions, axis=-1)
+
+                y_pred = mean
+                y_pred_uncertainty = uncertainty
+                pd.DataFrame(y_pred_uncertainty).to_csv(config.PREDICTIONS_PATH /
+                        "predictions_uncertainty.csv")
+            else:
+                y_pred = model.predict(X_test)
+
+        # Check if the shape of y_pred matches y_test, and if not, reshape y_pred
+        # to match y_test.
+        if y_pred.shape != y_test.shape:
+            if len(y_test.shape) == 1:
+                y_pred = y_pred.reshape(-1)
+            elif len(y_test.shape) == 2:
+                y_pred = y_pred.reshape(-1, y_test.shape[1])
+            else:
+                raise ValueError("y_test has more than 2 dimensions.")
+
+        if onehot_encode_target:
+            y_pred = np.argmax(y_pred, axis=-1)
+        elif classification:
+            y_pred = np.array((y_pred > 0.5), dtype=np.int)
 
         if classification:
 
             if onehot_encode_target:
                 y_test = np.argmax(y_test, axis=-1)
 
-            metrics = {}
+            accuracy = accuracy_score(y_test, y_pred)
+            print(f"Accuracy: {accuracy}")
 
-            for name in model_names:
-                method = os.path.splitext(name)[0].split("_")[-1]
-                y_pred = y_preds[method]
-                accuracy = accuracy_score(y_test, y_pred)
-                precision = precision_score(y_test, y_pred)
-                recall = recall_score(y_test, y_pred)
-                f1 = f1_score(y_test, y_pred)
+            plot_prediction(y_test, y_pred, info="Accuracy: {})".format(accuracy))
 
-                print(f"{name} precision: {precision}")
-                print(f"{name} recall: {recall}")
-                print(f"{name} F1: {f1}")
-                print(f"{name} accuracy: {accuracy}")
-                metrics[name] = accuracy
+            plot_confusion(y_test, y_pred, y_pred_uncertainty)
 
-                if accuracy >= threshold_for_ensemble_models:
-                    adequate_models[name] = accuracy
-
-                y_preds[method + f" ({accuracy:.2f})"] = y_preds.pop(method)
-
-            # plot_prediction(y_test, y_pred, info="Accuracy: {})".format(accuracy))
-            # plot_confusion(y_test, y_pred)
-
-            with open(METRICS_FILE_PATH, "w") as f:
-                json.dump(metrics, f)
+            with open(config.METRICS_FILE_PATH, "w") as f:
+                json.dump(dict(accuracy=accuracy), f)
 
         # Regression:
         else:
-            metrics = {}
+            print(y_test)
+            print(y_pred)
+            print(y_test.shape)
+            print(y_pred.shape)
+            print("========")
+            mse = mean_squared_error(y_test, y_pred)
+            rmse = mean_squared_error(y_test, y_pred, squared=False)
+            mape = mean_absolute_percentage_error(y_test, y_pred)
+            r2 = r2_score(y_test, y_pred)
 
-            for name in model_names:
-                method = os.path.splitext(name)[0].split("_")[-1]
-                print(f"{name}, {method}")
-                y_pred = y_preds[method]
-                metrics[name] = {}
+            plot_prediction(y_test, y_pred, inputs=inputs, info=f"(R2: {r2:.2f})",
+                            y_pred_uncertainty=y_pred_uncertainty)
+            plot_true_vs_pred(y_test, y_pred)
 
-                mse = mean_squared_error(y_test, y_pred)
-                rmse = mean_squared_error(y_test, y_pred, squared=False)
-                mape = mean_absolute_percentage_error(y_test, y_pred)
-                r2 = r2_score(y_test, y_pred)
+            print("MSE: {}".format(mse))
+            print("RMSE: {}".format(rmse))
+            print("MAPE: {}".format(mape))
+            print("R2: {}".format(r2))
 
-                metrics[name]["mse"] = mse
-                metrics[name]["rmse"] = rmse
-                metrics[name]["mape"] = mape
-                metrics[name]["r2"] = r2
-                # metrics[name] = r2
+            # Only plot predicted sequences if the output samples are sequences.
+            if len(y_test.shape) > 1 and y_test.shape[1] > 1:
+                plot_sequence_predictions(y_test, y_pred)
 
-                # plot_prediction(y_test, y_pred, inputs=inputs, info=f"(R2: {r2:.2f})")
-                # plot_true_vs_pred(y_test, y_pred)
+            with open(config.METRICS_FILE_PATH, "w") as f:
+                json.dump(dict(mse=mse, rmse=rmse, mape=mape, r2=r2), f)
 
-                # print("MSE: {}".format(mse))
-                # print("RMSE: {}".format(rmse))
-                # print("MAPE: {}".format(mape))
-                # print(f"{name} R2: {r2:.3f}")
+        # Print feature importances of the ML algorithm supports it.
+        try:
+            feature_importances = model.feature_importances_
+            imp = list()
+            for i, f in enumerate(feature_importances):
+                imp.append((f, i))
 
-                # info += f"{name} {r2:.2f}. "
-                y_preds[method + f" ({r2:.2f})"] = y_preds.pop(method)
+            sorted_feature_importances = sorted(imp)[::-1]
+            input_columns = pd.read_csv(config.INPUT_FEATURES_PATH, header=None)
 
-                for n in y_preds:
-                    print(n)
-                print("======")
+            print("-------------------------")
+            print("Feature importances:")
 
-                if metrics[name][performance_metric] >= threshold_for_ensemble_models:
-                    adequate_models[name] = metrics[name][performance_metric]
+            for i in range(len(sorted_feature_importances)):
+                print(
+                    f"Feature: {input_columns.iloc[i,0]}. Importance: {feature_importances[i]:.2f}"
+                )
 
+            print("-------------------------")
+        except:
+            pass
 
-            # # Only plot predicted sequences if the output samples are sequences.
-            # if len(y_test.shape) > 1 and y_test.shape[1] > 1:
-            #     plot_sequence_predictions(y_test, y_pred)
-
-            # with open(METRICS_FILE_PATH, "w") as f:
-            #     json.dump(dict(mse=mse, rmse=rmse, mape=mape, r2=r2), f)
-            with open(METRICS_FILE_PATH, "w") as f:
-                json.dump(metrics, f)
-
-            ADEQUATE_MODELS_PATH.mkdir(parents=True, exist_ok=True)
-
-            with open(ADEQUATE_MODELS_PATH / "adequate_models.json", "w") as f:
-                json.dump(adequate_models, f)
-
-            # save_predictions(pd.DataFrame(y_pred))
-
-        plot_prediction(y_test, y_preds, inputs=inputs, info="ensemble")
-
-        return 0
-    else:
-        model_filepath = MODELS_FILE_PATH
-
-    # pandas data frame to store predictions and ground truth.
-    df_predictions = None
-
-    y_pred = None
-
-    if learning_method in NON_DL_METHODS:
-        model = load(model_filepath)
-        y_pred = model.predict(X_test)
-    else:
-        model = models.load_model(model_filepath)
-
-        if dropout_uncertainty_estimation and not ensemble:
-            predictions = []
-
-            for i in range(uncertainty_estimation_sampling_size):
-                predictions.append(model(X_test, training=True))
-
-            predictions = np.stack(predictions, -1)
-            mean = np.mean(predictions, axis=-1)
-
-            if classification:
-                entropy = - np.sum(predictions * np.log(predictions + 1e-15), axis=-1)
-                uncertainty = entropy
-            else:
-                uncertainty = np.std(predictions, axis=-1)
-
-            y_pred = mean
-            y_pred_uncertainty = uncertainty
-            pd.DataFrame(y_pred_uncertainty).to_csv(PREDICTIONS_PATH /
-                    "predictions_uncertainty.csv")
-        else:
-            y_pred = model.predict(X_test)
-
-    # Check if the shape of y_pred matches y_test, and if not, reshape y_pred
-    # to match y_test.
-    if y_pred.shape != y_test.shape:
-        if len(y_test.shape) == 1:
-            y_pred = y_pred.reshape(-1)
-        elif len(y_test.shape) == 2:
-            y_pred = y_pred.reshape(-1, y_test.shape[1])
-        else:
-            raise ValueError("y_test has more than 2 dimensions.")
-
-    if onehot_encode_target:
-        y_pred = np.argmax(y_pred, axis=-1)
-    elif classification:
-        y_pred = np.array((y_pred > 0.5), dtype=np.int)
-
-    if classification:
-
-        if onehot_encode_target:
-            y_test = np.argmax(y_test, axis=-1)
-
-        accuracy = accuracy_score(y_test, y_pred)
-        print(f"Accuracy: {accuracy}")
-
-        plot_prediction(y_test, y_pred, info="Accuracy: {})".format(accuracy))
-
-        plot_confusion(y_test, y_pred, y_pred_uncertainty)
-
-        with open(METRICS_FILE_PATH, "w") as f:
-            json.dump(dict(accuracy=accuracy), f)
-
-    # Regression:
-    else:
-        print(y_test)
-        print(y_pred)
-        print(y_test.shape)
-        print(y_pred.shape)
-        print("========")
-        mse = mean_squared_error(y_test, y_pred)
-        rmse = mean_squared_error(y_test, y_pred, squared=False)
-        mape = mean_absolute_percentage_error(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
-
-        plot_prediction(y_test, y_pred, inputs=inputs, info=f"(R2: {r2:.2f})",
-                        y_pred_uncertainty=y_pred_uncertainty)
-        plot_true_vs_pred(y_test, y_pred)
-
-        print("MSE: {}".format(mse))
-        print("RMSE: {}".format(rmse))
-        print("MAPE: {}".format(mape))
-        print("R2: {}".format(r2))
-
-        # Only plot predicted sequences if the output samples are sequences.
-        if len(y_test.shape) > 1 and y_test.shape[1] > 1:
-            plot_sequence_predictions(y_test, y_pred)
-
-        with open(METRICS_FILE_PATH, "w") as f:
-            json.dump(dict(mse=mse, rmse=rmse, mape=mape, r2=r2), f)
-
-    # Print feature importances of the ML algorithm supports it.
-    try:
-        feature_importances = model.feature_importances_
-        imp = list()
-        for i, f in enumerate(feature_importances):
-            imp.append((f, i))
-
-        sorted_feature_importances = sorted(imp)[::-1]
-        input_columns = pd.read_csv(INPUT_FEATURES_PATH, header=None)
-
-        print("-------------------------")
-        print("Feature importances:")
-
-        for i in range(len(sorted_feature_importances)):
-            print(
-                f"Feature: {input_columns.iloc[i,0]}. Importance: {feature_importances[i]:.2f}"
-            )
-
-        print("-------------------------")
-    except:
-        pass
-
-    save_predictions(pd.DataFrame(y_pred))
+        save_predictions(pd.DataFrame(y_pred))
 
 def plot_confusion(y_test, y_pred, y_pred_uncertainty=None):
     """Plotting confusion matrix of a classification model."""
 
-    output_columns = np.array(pd.read_csv(OUTPUT_FEATURES_PATH, index_col=0)).reshape(
+    output_columns = np.array(pd.read_csv(config.OUTPUT_FEATURES_PATH, index_col=0)).reshape(
         -1
     )
 
@@ -371,7 +355,7 @@ def plot_confusion(y_test, y_pred, y_pred_uncertainty=None):
     df_confusion.columns.name = "Pred"
     plt.figure(figsize=(10, 7))
     sn.heatmap(df_confusion, cmap="Blues", annot=True, annot_kws={"size": 16})
-    plt.savefig(PLOTS_PATH / "confusion_matrix.png")
+    plt.savefig(config.PLOTS_PATH / "confusion_matrix.png")
 
     if y_pred_uncertainty is not None:
 
@@ -412,7 +396,7 @@ def plot_confusion(y_test, y_pred, y_pred_uncertainty=None):
                 yticklabels=labels,
         )
         plt.tight_layout()
-        plt.savefig(PLOTS_PATH / "probablistic_confusion_matrix.png")
+        plt.savefig(config.PLOTS_PATH / "probablistic_confusion_matrix.png")
         # plt.show()
 
 def save_predictions(df_predictions):
@@ -423,9 +407,8 @@ def save_predictions(df_predictions):
 
     """
 
-    PREDICTIONS_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    df_predictions.to_csv(PREDICTIONS_FILE_PATH, index=False)
+    df_predictions.to_csv(config.PREDICTIONS_FILE_PATH, index=False)
 
 
 def plot_confidence_intervals(df):
@@ -436,7 +419,6 @@ def plot_confidence_intervals(df):
 
     """
 
-    INTERVALS_PLOT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     x = [x for x in range(1, df.shape[0] + 1, 1)]
 
@@ -470,7 +452,7 @@ def plot_confidence_intervals(df):
         )
     )
 
-    fig.write_html(str(PLOTS_PATH / "intervals.html"))
+    fig.write_html(str(config.PLOTS_PATH / "intervals.html"))
 
 
 def plot_true_vs_pred(y_true, y_pred):
@@ -479,7 +461,7 @@ def plot_true_vs_pred(y_true, y_pred):
     plt.scatter(y_true, y_pred)
     plt.xlabel("True values")
     plt.ylabel("Predicted values")
-    plt.savefig(PLOTS_PATH / "true_vs_pred.png")
+    plt.savefig(config.PLOTS_PATH / "true_vs_pred.png")
 
 
 def plot_prediction(y_true, y_pred, inputs=None, info="", y_pred_uncertainty=None):
@@ -504,7 +486,6 @@ def plot_prediction(y_true, y_pred, inputs=None, info="", y_pred_uncertainty=Non
     else:
         ensemble = False
 
-    PREDICTION_PLOT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     x = np.linspace(0, y_true.shape[0] - 1, y_true.shape[0])
     fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -539,7 +520,7 @@ def plot_prediction(y_true, y_pred, inputs=None, info="", y_pred_uncertainty=Non
         )
 
     if inputs is not None:
-        input_columns = pd.read_csv(INPUT_FEATURES_PATH, index_col=0)
+        input_columns = pd.read_csv(config.INPUT_FEATURES_PATH, index_col=0)
         input_columns = [feature for feature in input_columns["0"]]
 
         if len(inputs.shape) == 3:
@@ -587,7 +568,7 @@ def plot_prediction(y_true, y_pred, inputs=None, info="", y_pred_uncertainty=Non
     fig.update_yaxes(title_text="target unit", secondary_y=False)
     fig.update_yaxes(title_text="scaled units", secondary_y=True)
 
-    fig.write_html(str(PLOTS_PATH / "prediction.html"))
+    fig.write_html(str(config.PLOTS_PATH / "prediction.html"))
 
     # fig.update_traces(line=dict(width=0.8))
     # fig.write_image("plot.pdf", height=270, width=560)
@@ -635,21 +616,24 @@ def plot_sequence_predictions(y_true, y_pred):
             )
         )
 
-    PREDICTION_PLOT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    fig.write_html(str(PLOTS_PATH / "prediction_sequences.html"))
+    fig.write_html(str(config.PLOTS_PATH / "prediction_sequences.html"))
+
+def main():
+    EvaluateStage().run()
 
 if __name__ == "__main__":
+    main()
 
-    if len(sys.argv) < 3:
-        try:
-            evaluate(
-                "assets/models/model.h5",
-                "assets/data/combined/train.npz",
-                "assets/data/combined/test.npz",
-            )
-        except:
-            print("Could not find model and test set.")
-            sys.exit(1)
-    else:
-        evaluate(sys.argv[1], sys.argv[2], sys.argv[3])
+    # if len(sys.argv) < 3:
+    #     try:
+    #         evaluate(
+    #             "assets/models/model.h5",
+    #             "assets/data/combined/train.npz",
+    #             "assets/data/combined/test.npz",
+    #         )
+    #     except:
+    #         print("Could not find model and test set.")
+    #         sys.exit(1)
+    # else:
+    #     evaluate(sys.argv[1], sys.argv[2], sys.argv[3])

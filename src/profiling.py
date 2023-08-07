@@ -13,76 +13,29 @@ import yaml
 from codecarbon import track_emissions
 from ydata_profiling import ProfileReport
 
-from config import DATA_PATH_RAW, PROFILE_PATH
+from config import config
 from preprocess_utils import find_files
 from pipelinestage import PipelineStage
 
-@track_emissions(project_name="profiling", offline=True, country_iso_code="NOR")
-def profiling(dir_path):
-    """Creates a profile report of a data set.
-
-    Reads data from a set of input files, and creates a report containing
-    profiling of the data. This profiling consists of various statistical
-    properties. The report is stored in two formats:
-
-    - HTML: For visual inspection
-    - JSON: For subsequent automatic processing of results
-
-    Args:
-        dir_path (str): Path to directory containing files.
-
-    """
-
-    # Reading the name of data set, which must be the name of subfolder of
-    # 'assets/data/raw', in where to look for data.
-    with open("params.yaml", "r", encoding="UTF-8") as infile:
-        dataset = yaml.safe_load(infile)["profile"]["dataset"]
-
-    # If no name of data set is given, all files present in 'assets/data/raw'
-    # will be used.
-    if dataset is not None:
-        dir_path += "/" + dataset
-
-    filepaths = find_files(dir_path, file_extension=".csv")
-
-    dfs = []
-
-    for filepath in filepaths:
-        dfs.append(pd.read_csv(filepath))
-
-    combined_df = pd.concat(dfs, ignore_index=True)
-
-    # Generate report.
-    profile = ProfileReport(
-        combined_df,
-        title="Profiling Analysis",
-        config_file="src/profile.yaml",
-        lazy=False,
-        sort=None,
-    )
-
-    # Create folder for profiling report
-    PROFILE_PATH.mkdir(parents=True, exist_ok=True)
-
-    # Save report to files.
-    profile.to_file(PROFILE_PATH / "profile.html")
-    profile.to_file(PROFILE_PATH / "profile.json")
-    
+# @track_emissions(project_name="profiling", offline=True, country_iso_code="NOR")
 class ProfileStage(PipelineStage):
     
     def __init__(self):
-        super().__init__(stage_name="profiling")
-        
-        self.data_path = DATA_PATH_RAW
+        super().__init__(stage_name="profile")
         
     def run(self):
+        """Creates a profile report of a data set.
 
-        # If no name of data set is given, all files present in 'assets/data/raw'
-        # will be used.
-        if self.params.profile.dataset is not None:
-            self.data_path = DATA_PATH_RAW / self.params.profile.dataset
-    
-        filepaths = find_files(self.data_path, file_extension=".csv")
+        Reads data from a set of input files, and creates a report containing
+        profiling of the data. This profiling consists of various statistical
+        properties. The report is stored in two formats:
+
+        - HTML: For visual inspection
+        - JSON: For subsequent automatic processing of results
+
+        """
+
+        filepaths = find_files(self.raw_data_path, file_extension=".csv")
     
         dfs = []
     
@@ -100,14 +53,11 @@ class ProfileStage(PipelineStage):
             sort=None,
         )
     
-        # Create folder for profiling report
-        PROFILE_PATH.mkdir(parents=True, exist_ok=True)
     
         # Save report to files.
-        profile.to_file(PROFILE_PATH / "profile.html")
-        profile.to_file(PROFILE_PATH / "profile.json")
+        profile.to_file(config.PROFILE_JSON_PATH)
+        profile.to_file(config.PROFILE_HTML_PATH)
 
 if __name__ == "__main__":
 
-    # profiling(sys.argv[1])
     ProfileStage().run()

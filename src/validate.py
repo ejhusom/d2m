@@ -9,6 +9,7 @@ Created:
     2023-08-05 Saturday 23:26:26 
 
 """
+from config import *
 
 class BaseConfig:
     def validate(self):
@@ -177,6 +178,11 @@ class MainConfig:
         self.train.validate()
         self.evaluate.validate()
         self.explain.validate()
+
+    # def create_folders(self):
+
+
+        
 
 if __name__ == '__main__':
 

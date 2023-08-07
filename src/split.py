@@ -17,12 +17,12 @@ import numpy as np
 import yaml
 from codecarbon import track_emissions
 
-from config import DATA_SPLIT_PATH
+from config import config
+from pipelinestage import PipelineStage
 from preprocess_utils import find_files
 
 
-@track_emissions(project_name="split", offline=True, country_iso_code="NOR")
-def split(dir_path):
+class SplitStage(PipelineStage):
     """Split data into train and test set.
 
     Training files and test files are saved to different folders.
@@ -32,76 +32,73 @@ def split(dir_path):
 
     """
 
-    with open("params.yaml", "r", encoding="UTF-8") as infile:
-        params = yaml.safe_load(infile)["split"]
+    def __init__(self):
+        super().__init__(stage_name="clean")
 
-    shuffle_files = params["shuffle_files"]
-    shuffle_samples_before_split = params["shuffle_samples_before_split"]
+    def run(self):
 
-    DATA_SPLIT_PATH.mkdir(parents=True, exist_ok=True)
+        filepaths = find_files(config.DATA_FEATURIZED_PATH, file_extension=".npy")
 
-    filepaths = find_files(dir_path, file_extension=".npy")
+        # Handle special case where there is only one data file.
+        if isinstance(filepaths, str) or len(filepaths) == 1:
+            filepath = filepaths[0]
 
-    # Handle special case where there is only one data file.
-    if isinstance(filepaths, str) or len(filepaths) == 1:
-        filepath = filepaths[0]
+            data = np.load(filepath)
 
-        data = np.load(filepath)
+            if self.params.split.shuffle_samples_before_split:
+                permutation = np.random.permutation(data.shape[0])
+                data = np.take(data, permutation, axis=0)
 
-        if shuffle_samples_before_split:
-            permutation = np.random.permutation(data.shape[0])
-            data = np.take(data, permutation, axis=0)
+            train_size = int(len(data) * self.params.split.train_split)
 
-        train_size = int(len(data) * params["train_split"])
+            data_train = None
+            data_test = None
 
-        data_train = None
-        data_test = None
+            data_train = data[:train_size, :]
+            data_test = data[train_size:, :]
 
-        data_train = data[:train_size, :]
-        data_test = data[train_size:, :]
+            np.save(
+                config.DATA_SPLIT_PATH / os.path.basename(filepath).replace("featurized", "train"),
+                data_train,
+            )
 
-        np.save(
-            DATA_SPLIT_PATH / os.path.basename(filepath).replace("featurized", "train"),
-            data_train,
-        )
+            np.save(
+                config.DATA_SPLIT_PATH / os.path.basename(filepath).replace("featurized", "test"),
+                data_test,
+            )
 
-        np.save(
-            DATA_SPLIT_PATH / os.path.basename(filepath).replace("featurized", "test"),
-            data_test,
-        )
+        else:
 
-    else:
+            if self.params.split.shuffle_files:
+                random.shuffle(filepaths)
 
-        if shuffle_files:
-            random.shuffle(filepaths)
+            # Parameter 'train_split' is used to find out no. of files in training set
+            file_split = int(len(filepaths) * self.params.split.train_split)
 
-        # Parameter 'train_split' is used to find out no. of files in training set
-        file_split = int(len(filepaths) * params["train_split"])
+            training_files = []
+            test_files = []
 
-        training_files = []
-        test_files = []
+            training_files = filepaths[:file_split]
+            test_files = filepaths[file_split:]
 
-        training_files = filepaths[:file_split]
-        test_files = filepaths[file_split:]
+            for filepath in filepaths:
 
-        for filepath in filepaths:
+                if filepath in training_files:
+                    shutil.copyfile(
+                        filepath,
+                        config.DATA_SPLIT_PATH
+                        / os.path.basename(filepath).replace("featurized", "train"),
+                    )
 
-            if filepath in training_files:
-                shutil.copyfile(
-                    filepath,
-                    DATA_SPLIT_PATH
-                    / os.path.basename(filepath).replace("featurized", "train"),
-                )
+                elif filepath in test_files:
+                    shutil.copyfile(
+                        filepath,
+                        config.DATA_SPLIT_PATH
+                        / os.path.basename(filepath).replace("featurized", "test"),
+                    )
 
-            elif filepath in test_files:
-                shutil.copyfile(
-                    filepath,
-                    DATA_SPLIT_PATH
-                    / os.path.basename(filepath).replace("featurized", "test"),
-                )
+def main():
+    SplitStage().run()
 
 if __name__ == "__main__":
-
-    np.random.seed(2029)
-
-    split(sys.argv[1])
+    main()

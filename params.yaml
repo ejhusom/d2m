@@ -64,7 +64,7 @@ train:
   head_size: 256
   hyperparameter_tuning: false
   kernel_size: 5
-  learning_method: rnn
+  learning_method: dt
   maxpooling: false
   maxpooling_size: 4
   n_epochs: 10

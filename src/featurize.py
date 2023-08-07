@@ -21,312 +21,294 @@ from scipy.signal import find_peaks
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 
-from config import (
-    DATA_FEATURIZED_PATH,
-    FEATURES_PATH,
-    INPUT_FEATURES_PATH,
-    OUTPUT_FEATURES_PATH,
-    PROFILE_PATH,
-)
+from config import config
+from pipelinestage import PipelineStage
 from preprocess_utils import find_files, move_column
 
+class FeaturizeStage(PipelineStage):
 
-@track_emissions(project_name="featurize", offline=True, country_iso_code="NOR")
-def featurize(dir_path="", inference=False, inference_df=None):
-    """Clean up inputs and add features to data set.
+    def __init__(self):
+        super().__init__(stage_name="featurize")
 
-    Args:
-        dir_path (str): Path to directory containing files.
-        inference (bool): When creating a virtual sensor, the
-            results should be saved to file for more efficient reruns of the
-            pipeline. When running the virtual sensor, there is no need to save
-            these intermediate results to file.
+    def run(self, inference_df=None):
 
-    """
+        if inference_df is not None:
+            output_columns = np.array(
+                pd.read_csv(config.OUTPUT_FEATURES_PATH, index_col=0, dtype=str)
+            ).reshape(-1)
 
-    # Load parameters
-    with open("params.yaml", "r") as params_file:
-        params = yaml.safe_load(params_file)
+            df = self._featurize(inference_df, self.params.featurize.variables_to_include,
+                    self.params.featurize.remove_features, output_columns)
 
-    features = params["featurize"]["variables_to_include"]
-    remove_features = params["featurize"]["remove_features"]
-    target = params["clean"]["target"]
+            input_columns = pd.read_csv(config.INPUT_FEATURES_PATH, index_col=0)
+            input_columns = [feature for feature in input_columns["0"]]
 
-    if inference:
+            for expected_col in input_columns:
+                if expected_col not in df.columns:
+                    raise ValueError(f"Variable {expected_col} not in input data.")
+
+            for actual_col in df.columns:
+                if actual_col not in input_columns:
+                    del df[actual_col]
+
+            return df
+
+        filepaths = find_files(config.DATA_CLEANED_PATH, file_extension=".csv")
+        print(filepaths)
+
         output_columns = np.array(
-            pd.read_csv(OUTPUT_FEATURES_PATH, index_col=0, dtype=str)
+            pd.read_csv(config.OUTPUT_FEATURES_PATH, index_col=0, dtype=str)
         ).reshape(-1)
 
-        df = _featurize(inference_df, features, remove_features, params, output_columns)
+        for filepath in filepaths:
 
-        input_columns = pd.read_csv(INPUT_FEATURES_PATH, index_col=0)
-        input_columns = [feature for feature in input_columns["0"]]
+            # Read csv
+            df = pd.read_csv(filepath, index_col=0)
 
-        for expected_col in input_columns:
-            if expected_col not in df.columns:
-                raise ValueError(f"Variable {expected_col} not in input data.")
+            df = self._featurize(df, self.params.featurize.variables_to_include,
+                    self.params.featurize.remove_features, output_columns)
 
-        for actual_col in df.columns:
-            if actual_col not in input_columns:
-                del df[actual_col]
+            # Move target column(s) to the beginning of dataframe
+            for col in output_columns[::-1]:
+                df = move_column(df, column_name=col, new_idx=0)
+
+            np.save(
+                config.DATA_FEATURIZED_PATH
+                / os.path.basename(filepath).replace("cleaned.csv", "featurized.npy"),
+                df.to_numpy(),
+            )
+
+        # Save list of features used
+        input_columns = [col for col in df.columns if col not in output_columns]
+        pd.DataFrame(input_columns).to_csv(config.INPUT_FEATURES_PATH)
+
+
+    def _featurize(self, df, features, remove_features, output_columns):
+        """Process individual DataFrames."""
+
+        # If no features are specified, use all columns as features
+        if not isinstance(self.params.featurize.variables_to_include, list):
+            self.params.featurize.variables_to_include = df.columns
+
+        # Check if wanted features from params.yaml exists in the data
+        for feature in self.params.featurize.variables_to_include:
+            if feature not in df.columns:
+                print(f"Feature {feature} not found!")
+
+        for col in df.columns:
+            # Remove feature from input. This is useful in the case that a raw
+            # feature is used to engineer a feature, but the raw feature itself
+            # should not be a part of the input.
+            if (col not in self.params.featurize.variables_to_include) and (col not in output_columns):
+                del df[col]
+
+            # Remove feature if it is non-numeric
+            # FIXME: This sometimes removes features that actually are numeric.
+            elif not is_numeric_dtype(df[col]):
+                print(f"Removing feature {col} because it is non-numeric.")
+                del df[col]
+
+            # Convert boolean feature to integer
+            elif df.dtypes[col] == bool:
+                print(f"Converting feature {col} from boolean to integer.")
+                df[col] = df[col].replace({True: 1, False: 0})
+
+        df = self.compute_rolling_features(df, ignore_columns=output_columns)
+
+        if isinstance(self.params.featurize.remove_features, list):
+            for col in self.params.featurize.remove_features:
+                if col in df:
+                    del df[col]
 
         return df
 
-    filepaths = find_files(dir_path, file_extension=".csv")
 
-    DATA_FEATURIZED_PATH.mkdir(parents=True, exist_ok=True)
-    FEATURES_PATH.mkdir(parents=True, exist_ok=True)
+    def compute_rolling_features(self, df, ignore_columns=None):
+        """
+        This function adds features to the input data, based on the arguments
+        given in the features-list.
 
-    output_columns = np.array(
-        pd.read_csv(OUTPUT_FEATURES_PATH, index_col=0, dtype=str)
-    ).reshape(-1)
+        Available features (TODO):
 
-    for filepath in filepaths:
+        - mean
+        - std
+        - autocorrelation
+        - abs_energy
+        - absolute_maximum
+        - absolute_sum_of_change
 
-        # Read csv
-        df = pd.read_csv(filepath, index_col=0)
+        Args:
+        df (pandas DataFrame): Data frame to add features to.
+        features (list): A list containing keywords specifying which features to
+            add.
 
-        df = _featurize(df, features, remove_features, params, output_columns)
+        Returns:
+            df (pandas DataFrame): Data frame with added features.
 
-        # Move target column(s) to the beginning of dataframe
-        for col in output_columns[::-1]:
-            df = move_column(df, column_name=col, new_idx=0)
+        """
 
-        np.save(
-            DATA_FEATURIZED_PATH
-            / os.path.basename(filepath).replace("cleaned.csv", "featurized.npy"),
-            df.to_numpy(),
-        )
+        # TODO: Fix pandas handling
 
-    # Save list of features used
-    input_columns = [col for col in df.columns if col not in output_columns]
-    pd.DataFrame(input_columns).to_csv(INPUT_FEATURES_PATH)
+        params = self.params_dict
 
+        columns = [col for col in df.columns if col not in ignore_columns]
 
-def _featurize(df, features, remove_features, params, output_columns):
-    """Process individual DataFrames."""
+        if self.params.featurize.use_all_engineered_features_on_all_variables:
+            features_to_add = [p for p in params["featurize"] if p.startswith("add_")]
 
-    # If no features are specified, use all columns as features
-    if not isinstance(features, list):
-        features = df.columns
+            for feature in features_to_add:
+                params["featurize"][feature] = columns
 
-    # Check if wanted features from params.yaml exists in the data
-    for feature in features:
-        if feature not in df.columns:
-            print(f"Feature {feature} not found!")
-
-    for col in df.columns:
-        # Remove feature from input. This is useful in the case that a raw
-        # feature is used to engineer a feature, but the raw feature itself
-        # should not be a part of the input.
-        if (col not in features) and (col not in output_columns):
-            del df[col]
-
-        # Remove feature if it is non-numeric
-        # FIXME: This sometimes removes features that actually are numeric.
-        elif not is_numeric_dtype(df[col]):
-            print(f"Removing feature {col} because it is non-numeric.")
-            del df[col]
-
-        # Convert boolean feature to integer
-        elif df.dtypes[col] == bool:
-            print(f"Converting feature {col} from boolean to integer.")
-            df[col] = df[col].replace({True: 1, False: 0})
-
-    df = compute_rolling_features(df, params, ignore_columns=output_columns)
-
-    if isinstance(remove_features, list):
-        for col in remove_features:
-            if col in df:
-                del df[col]
-
-    return df
-
-
-def compute_rolling_features(df, params, ignore_columns=None):
-    """
-    This function adds features to the input data, based on the arguments
-    given in the features-list.
-
-    Available features (TODO):
-
-    - mean
-    - std
-    - autocorrelation
-    - abs_energy
-    - absolute_maximum
-    - absolute_sum_of_change
-
-    Args:
-    df (pandas DataFrame): Data frame to add features to.
-    features (list): A list containing keywords specifying which features to
-        add.
-
-    Returns:
-        df (pandas DataFrame): Data frame with added features.
-
-    """
-
-    # TODO: Fix pandas handling
-
-    columns = [col for col in df.columns if col not in ignore_columns]
-
-    if params["featurize"]["use_all_engineered_features_on_all_variables"]:
-        features_to_add = [p for p in params["featurize"] if p.startswith("add_")]
-
-        for feature in features_to_add:
-            params["featurize"][feature] = columns
-
-    if isinstance(params["featurize"]["add_sum"], list):
-        for var in params["featurize"]["add_sum"]:
-            # df[f"{var}_sum"] = (
-            #     df[var].rolling(params["featurize"]["rolling_window_size_sum"]).sum()
-            # )
-            df = pd.concat([
-                pd.Series(
-                    df[var].rolling(params["featurize"]["rolling_window_size_sum"]).sum(),
-                    name=f"{var}_sum"
-                    ), 
-                df], axis=1
-            )
-
-    if isinstance(params["featurize"]["add_gradient"], list):
-        for var in params["featurize"]["add_gradient"]:
-            df = pd.concat([pd.Series(np.gradient(df[var]), name=f"{var}_gradient"), df], axis=1)
-            # print(df)
-            # df[f"{var}_gradient"] = np.gradient(df[var])
-
-    if isinstance(params["featurize"]["add_mean"], list):
-        for var in params["featurize"]["add_mean"]:
-            # df[f"{var}_mean"] = (
-            #     df[var].rolling(params["featurize"]["rolling_window_size_mean"]).mean()
-            # )
-            df = pd.concat([
+        if isinstance(params["featurize"]["add_sum"], list):
+            for var in params["featurize"]["add_sum"]:
+                # df[f"{var}_sum"] = (
+                #     df[var].rolling(params["featurize"]["rolling_window_size_sum"]).sum()
+                # )
+                df = pd.concat([
                     pd.Series(
-                        df[var].rolling(params["featurize"]["rolling_window_size_mean"]).mean(),
-                        name=f"{var}_mean"),
-                df], axis=1
-            )
+                        df[var].rolling(params["featurize"]["rolling_window_size_sum"]).sum(),
+                        name=f"{var}_sum"
+                        ), 
+                    df], axis=1
+                )
 
-    if isinstance(params["featurize"]["add_maximum"], list):
-        for var in params["featurize"]["add_maximum"]:
-            # df[f"{var}_maximum"] = (
-            #     df[var]
-            #     .rolling(params["featurize"]["rolling_window_size_max_min"])
-            #     .max()
-            # )
-            df = pd.concat([
-                    pd.Series(
-                        df[var].rolling(params["featurize"]["rolling_window_size_max_min"]).max(),
-                        name=f"{var}_max"),
-                df], axis=1
-            )
+        if isinstance(params["featurize"]["add_gradient"], list):
+            for var in params["featurize"]["add_gradient"]:
+                df = pd.concat([pd.Series(np.gradient(df[var]), name=f"{var}_gradient"), df], axis=1)
+                # print(df)
+                # df[f"{var}_gradient"] = np.gradient(df[var])
 
-    if isinstance(params["featurize"]["add_minimum"], list):
-        for var in params["featurize"]["add_minimum"]:
-            # minimum = (
-            #     df[var]
-            #     .rolling(params["featurize"]["rolling_window_size_max_min"])
-            #     .min()
-            # )
-            df = pd.concat([
-                    pd.Series(
-                        df[var].rolling(params["featurize"]["rolling_window_size_max_min"]).max(),
-                        name=f"{var}_min"),
-                df], axis=1
-            )
+        if isinstance(params["featurize"]["add_mean"], list):
+            for var in params["featurize"]["add_mean"]:
+                # df[f"{var}_mean"] = (
+                #     df[var].rolling(params["featurize"]["rolling_window_size_mean"]).mean()
+                # )
+                df = pd.concat([
+                        pd.Series(
+                            df[var].rolling(params["featurize"]["rolling_window_size_mean"]).mean(),
+                            name=f"{var}_mean"),
+                    df], axis=1
+                )
 
-    if isinstance(params["featurize"]["add_min_max_range"], list):
-        for var in params["featurize"]["add_min_max_range"]:
-            maximum = (
-                df[var]
-                .rolling(params["featurize"]["rolling_window_size_max_min"])
-                .max()
-            )
-            minimum = (
-                df[var]
-                .rolling(params["featurize"]["rolling_window_size_max_min"])
-                .min()
-            )
-            # df[f"{var}_min_max_range"] = maximum - minimum
-            df = pd.concat([
-                    pd.Series(
-                        maximum - minimum,
-                        name=f"{var}_min_max_range"),
-                df], axis=1
-            )
+        if isinstance(params["featurize"]["add_maximum"], list):
+            for var in params["featurize"]["add_maximum"]:
+                # df[f"{var}_maximum"] = (
+                #     df[var]
+                #     .rolling(params["featurize"]["rolling_window_size_max_min"])
+                #     .max()
+                # )
+                df = pd.concat([
+                        pd.Series(
+                            df[var].rolling(params["featurize"]["rolling_window_size_max_min"]).max(),
+                            name=f"{var}_max"),
+                    df], axis=1
+                )
 
-    if isinstance(params["featurize"]["add_slope"], list):
-        for var in params["featurize"]["add_slope"]:
-            # df[f"{var}_slope"] = calculate_slope(df[var])
-            df = pd.concat([
-                    pd.Series(
-                        calculate_slope(df[var]),
-                        name=f"{var}_slope"),
-                df], axis=1
-            )
+        if isinstance(params["featurize"]["add_minimum"], list):
+            for var in params["featurize"]["add_minimum"]:
+                # minimum = (
+                #     df[var]
+                #     .rolling(params["featurize"]["rolling_window_size_max_min"])
+                #     .min()
+                # )
+                df = pd.concat([
+                        pd.Series(
+                            df[var].rolling(params["featurize"]["rolling_window_size_max_min"]).max(),
+                            name=f"{var}_min"),
+                    df], axis=1
+                )
 
-    if isinstance(params["featurize"]["add_slope_sin"], list):
-        for var in params["featurize"]["add_slope_sin"]:
-            slope = calculate_slope(df[var])
-            # df[f"{var}_slope_sin"] = np.sin(slope)
-            df = pd.concat([
-                    pd.Series(
-                        np.sin(calculate_slope(df[var])),
-                        name=f"{var}_slope_sin"),
-                df], axis=1
-            )
+        if isinstance(params["featurize"]["add_min_max_range"], list):
+            for var in params["featurize"]["add_min_max_range"]:
+                maximum = (
+                    df[var]
+                    .rolling(params["featurize"]["rolling_window_size_max_min"])
+                    .max()
+                )
+                minimum = (
+                    df[var]
+                    .rolling(params["featurize"]["rolling_window_size_max_min"])
+                    .min()
+                )
+                # df[f"{var}_min_max_range"] = maximum - minimum
+                df = pd.concat([
+                        pd.Series(
+                            maximum - minimum,
+                            name=f"{var}_min_max_range"),
+                    df], axis=1
+                )
 
-    if isinstance(params["featurize"]["add_slope_cos"], list):
-        for var in params["featurize"]["add_slope_cos"]:
-            slope = calculate_slope(df[var])
-            # df[f"{var}_slope_cos"] = np.cos(slope)
-            df = pd.concat([
-                    pd.Series(
-                        np.cos(calculate_slope(df[var])),
-                        name=f"{var}_slope_cos"),
-                df], axis=1
-            )
+        if isinstance(params["featurize"]["add_slope"], list):
+            for var in params["featurize"]["add_slope"]:
+                # df[f"{var}_slope"] = calculate_slope(df[var])
+                df = pd.concat([
+                        pd.Series(
+                            calculate_slope(df[var]),
+                            name=f"{var}_slope"),
+                    df], axis=1
+                )
 
-    if isinstance(params["featurize"]["add_standard_deviation"], list):
-        for var in params["featurize"]["add_standard_deviation"]:
-            # df[f"{var}_standard_deviation"] = (
-            #     df[var]
-            #     .rolling(params["featurize"]["rolling_window_size_standard_deviation"])
-            #     .std()
-            # )
-            df = pd.concat([
-                    pd.Series(
-                        df[var]
-                        .rolling(params["featurize"]["rolling_window_size_standard_deviation"])
-                        .std(),
-                        name=f"{var}_standard_deviation"),
-                df], axis=1
-            )
+        if isinstance(params["featurize"]["add_slope_sin"], list):
+            for var in params["featurize"]["add_slope_sin"]:
+                slope = calculate_slope(df[var])
+                # df[f"{var}_slope_sin"] = np.sin(slope)
+                df = pd.concat([
+                        pd.Series(
+                            np.sin(calculate_slope(df[var])),
+                            name=f"{var}_slope_sin"),
+                    df], axis=1
+                )
 
-    if isinstance(params["featurize"]["add_variance"], list):
-        for var in params["featurize"]["add_variance"]:
-            # df[f"{var}_variance"] = np.var(df[var])
-            df = pd.concat([
-                    pd.Series(
-                        np.var(df[var]),
-                        name=f"{var}_variance"),
-                df], axis=1
-            )
+        if isinstance(params["featurize"]["add_slope_cos"], list):
+            for var in params["featurize"]["add_slope_cos"]:
+                slope = calculate_slope(df[var])
+                # df[f"{var}_slope_cos"] = np.cos(slope)
+                df = pd.concat([
+                        pd.Series(
+                            np.cos(calculate_slope(df[var])),
+                            name=f"{var}_slope_cos"),
+                    df], axis=1
+                )
 
-    if isinstance(params["featurize"]["add_peak_frequency"], list):
-        for var in params["featurize"]["add_peak_frequency"]:
-            # df[f"{var}_peak_frequency"] = calculate_peak_frequency(df[var])
-            df = pd.concat([
-                    pd.Series(
-                        calculate_peak_frequency(df[var]),
-                        name=f"{var}_peak_frequency"),
-                df], axis=1
-            )
+        if isinstance(params["featurize"]["add_standard_deviation"], list):
+            for var in params["featurize"]["add_standard_deviation"]:
+                # df[f"{var}_standard_deviation"] = (
+                #     df[var]
+                #     .rolling(params["featurize"]["rolling_window_size_standard_deviation"])
+                #     .std()
+                # )
+                df = pd.concat([
+                        pd.Series(
+                            df[var]
+                            .rolling(params["featurize"]["rolling_window_size_standard_deviation"])
+                            .std(),
+                            name=f"{var}_standard_deviation"),
+                    df], axis=1
+                )
 
-    df = df.dropna()
+        if isinstance(params["featurize"]["add_variance"], list):
+            for var in params["featurize"]["add_variance"]:
+                # df[f"{var}_variance"] = np.var(df[var])
+                df = pd.concat([
+                        pd.Series(
+                            np.var(df[var]),
+                            name=f"{var}_variance"),
+                    df], axis=1
+                )
 
-    return df
+        if isinstance(params["featurize"]["add_peak_frequency"], list):
+            for var in params["featurize"]["add_peak_frequency"]:
+                # df[f"{var}_peak_frequency"] = calculate_peak_frequency(df[var])
+                df = pd.concat([
+                        pd.Series(
+                            calculate_peak_frequency(df[var]),
+                            name=f"{var}_peak_frequency"),
+                    df], axis=1
+                )
+
+        df = df.dropna()
+
+        return df
 
 
 def calculate_peak_frequency(series, rolling_mean_window=200):
@@ -418,7 +400,7 @@ def calculate_slope(series, shift=2, rolling_mean_window=1, absvalue=False):
 #     categorical_variables = [
 #         var
 #         for var in categorical_variables
-#         if var in combined_df.columns and var != target
+#         if var in combined_df.columns and var != self.params.clean.target
 #     ]
 
 #     print(combined_df)
@@ -439,46 +421,40 @@ def calculate_slope(series, shift=2, rolling_mean_window=1, absvalue=False):
     # categorical_encoder.fit(combined_df)
     # ===============================================
 
-def find_categorical_variables():
-    """Find categorical variables based on profiling report.
+    def find_categorical_variables(self):
+        """Find categorical variables based on profiling report.
 
-    Returns:
-        categorical_variables (list): List of categorical variables.
+        Returns:
+            categorical_variables (list): List of categorical variables.
 
-    """
+        """
 
-    with open("params.yaml", "r", encoding="UTF-8") as infile:
-        params = yaml.safe_load(infile)["clean"]
+        with open(config.PROFILE_JSON_PATH, "r", encoding="UTF-8") as infile:
+            profile_json = json.load(infile)
 
-    target = params["target"]
+        variables = list(profile_json["variables"].keys())
+        correlations = profile_json["correlations"]["pearson"]
 
-    with open(PROFILE_PATH / "profile.json", "r", encoding="UTF-8") as infile:
-        profile_json = json.load(infile)
+        categorical_variables = []
 
-    variables = list(profile_json["variables"].keys())
-    correlations = profile_json["correlations"]["pearson"]
+        for var in variables:
 
-    categorical_variables = []
+            try:
+                n_categories = profile_json["variables"][var]["n_category"]
+                categorical_variables.append(var)
+            except:
+                pass
 
-    for var in variables:
+        # categorical_variables = list(set(categorical_variables))
 
-        try:
-            n_categories = profile_json["variables"][var]["n_category"]
-            categorical_variables.append(var)
-        except:
-            pass
+        # if self.params.clean.target in categorical_variables:
+        #     print("Warning related to target variable. Check profile for details.")
+        #     categorical_variables.remove(self.params.clean.target)
 
-    # categorical_variables = list(set(categorical_variables))
+        return categorical_variables
 
-    # if target in categorical_variables:
-    #     print("Warning related to target variable. Check profile for details.")
-    #     categorical_variables.remove(target)
-
-    return categorical_variables
-
+def main():
+    FeaturizeStage().run()
 
 if __name__ == "__main__":
-
-    np.random.seed(2020)
-
-    featurize(sys.argv[1])
+    main()
