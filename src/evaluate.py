@@ -47,16 +47,6 @@ import neural_networks as nn
 from config import config
 from pipelinestage import PipelineStage
 
-# @track_emissions(project_name="evaluate", offline=True, country_iso_code="NOR")
-# def evaluate(model_filepath, train_filepath, test_filepath):
-#     """Evaluate model to estimate power.
-
-#     Args:
-#         model_filepath (str): Path to model.
-#         train_filepath (str): Path to train set.
-#         test_filepath (str): Path to test set.
-
-#     """
 class EvaluateStage(PipelineStage):
 
     def __init__(self):
@@ -64,40 +54,24 @@ class EvaluateStage(PipelineStage):
 
     def run(self):
 
-        # Load parameters
-        params = yaml.safe_load(open("params.yaml"))["evaluate"]
-        params_train = yaml.safe_load(open("params.yaml"))["train"]
-        params_split = yaml.safe_load(open("params.yaml"))["split"]
-        classification = yaml.safe_load(open("params.yaml"))["clean"]["classification"]
-        window_size = yaml.safe_load(open("params.yaml"))["sequentialize"]["window_size"]
-        onehot_encode_target = yaml.safe_load(open("params.yaml"))["clean"][
-            "onehot_encode_target"
-        ]
-        dropout_uncertainty_estimation = params["dropout_uncertainty_estimation"]
-        uncertainty_estimation_sampling_size = params["uncertainty_estimation_sampling_size"]
-        show_inputs = params["show_inputs"]
-        performance_metric = params["performance_metric"]
-        threshold_for_ensemble_models = params["threshold_for_ensemble_models"]
-        learning_method = params_train["learning_method"]
-
-        if performance_metric == "auto":
-            if classification:
-                performance_metric = "accuracy"
+        if self.params.evaluate.performance_metric == "auto":
+            if self.params.clean.classification:
+                self.params.evaluate.performance_metric = "accuracy"
             else:
-                performance_metric = "r2"
+                self.params.evaluate.performance_metric = "r2"
 
-        if threshold_for_ensemble_models == "auto":
-            if classification:
-                threshold_for_ensemble_models = 0.75
+        if self.params.evaluate.threshold_for_ensemble_models == "auto":
+            if self.params.clean.classification:
+                self.params.evaluate.threshold_for_ensemble_models = 0.75
             else:
-                threshold_for_ensemble_models = 0.5
+                self.params.evaluate.threshold_for_ensemble_models = 0.5
 
         test = np.load(config.DATA_COMBINED_TEST_PATH)
         X_test = test["X"]
         y_test = test["y"]
         y_pred_uncertainty = None
 
-        if show_inputs:
+        if self.params.evaluate.show_inputs:
             inputs = X_test
         else:
             inputs = None
@@ -118,19 +92,16 @@ class EvaluateStage(PipelineStage):
 
             for name in model_names:
                 method = os.path.splitext(name)[0].split("_")[-1]
-                if method in config.DL_METHODS:
-                    model = models.load_model(config.MODELS_PATH / name)
-                else:
-                    model = load(config.MODELS_PATH / name)
+                model = self.load_model(config.MODELS_PATH / name)
 
                 y_pred = model.predict(X_test)
                 y_preds[method] = y_pred
 
             adequate_models = {}
 
-            if classification:
+            if self.params.clean.classification:
 
-                if onehot_encode_target:
+                if self.params.clean.onehot_encode_target:
                     y_test = np.argmax(y_test, axis=-1)
 
                 metrics = {}
@@ -149,7 +120,7 @@ class EvaluateStage(PipelineStage):
                     print(f"{name} accuracy: {accuracy}")
                     metrics[name] = accuracy
 
-                    if accuracy >= threshold_for_ensemble_models:
+                    if accuracy >= self.params.evaluate.threshold_for_ensemble_models:
                         adequate_models[name] = accuracy
 
                     y_preds[method + f" ({accuracy:.2f})"] = y_preds.pop(method)
@@ -196,8 +167,8 @@ class EvaluateStage(PipelineStage):
                         print(n)
                     print("======")
 
-                    if metrics[name][performance_metric] >= threshold_for_ensemble_models:
-                        adequate_models[name] = metrics[name][performance_metric]
+                    if metrics[name][self.params.evaluate.performance_metric] >= self.params.evaluate.threshold_for_ensemble_models:
+                        adequate_models[name] = metrics[name][self.params.evaluate.performance_metric]
 
 
                 # # Only plot predicted sequences if the output samples are sequences.
@@ -224,22 +195,22 @@ class EvaluateStage(PipelineStage):
 
         y_pred = None
 
-        if learning_method in config.NON_DL_METHODS:
+        if self.params.train.learning_method in config.NON_DL_METHODS:
             model = load(config.MODELS_FILE_PATH)
             y_pred = model.predict(X_test)
         else:
             model = models.load_model(config.MODELS_FILE_PATH)
 
-            if dropout_uncertainty_estimation and not self.params.train.ensemble:
+            if self.params.evaluate.dropout_uncertainty_estimation and not self.params.train.ensemble:
                 predictions = []
 
-                for i in range(uncertainty_estimation_sampling_size):
+                for i in range(self.params.evaluate.uncertainty_estimation_sampling_size):
                     predictions.append(model(X_test, training=True))
 
                 predictions = np.stack(predictions, -1)
                 mean = np.mean(predictions, axis=-1)
 
-                if classification:
+                if self.params.clean.classification:
                     entropy = - np.sum(predictions * np.log(predictions + 1e-15), axis=-1)
                     uncertainty = entropy
                 else:
@@ -262,14 +233,14 @@ class EvaluateStage(PipelineStage):
             else:
                 raise ValueError("y_test has more than 2 dimensions.")
 
-        if onehot_encode_target:
+        if self.params.clean.onehot_encode_target:
             y_pred = np.argmax(y_pred, axis=-1)
-        elif classification:
+        elif self.params.clean.classification:
             y_pred = np.array((y_pred > 0.5), dtype=np.int)
 
-        if classification:
+        if self.params.clean.classification:
 
-            if onehot_encode_target:
+            if self.params.clean.onehot_encode_target:
                 y_test = np.argmax(y_test, axis=-1)
 
             accuracy = accuracy_score(y_test, y_pred)
@@ -624,16 +595,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    # if len(sys.argv) < 3:
-    #     try:
-    #         evaluate(
-    #             "assets/models/model.h5",
-    #             "assets/data/combined/train.npz",
-    #             "assets/data/combined/test.npz",
-    #         )
-    #     except:
-    #         print("Could not find model and test set.")
-    #         sys.exit(1)
-    # else:
-    #     evaluate(sys.argv[1], sys.argv[2], sys.argv[3])

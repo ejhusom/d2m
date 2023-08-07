@@ -45,9 +45,9 @@ class PipelineStage():
     
     def load_model(self, model_filepath):
 
-        if self.params.train.learning_method in config.NON_DL_METHODS:
-            self.model = load(model_filepath)
+        if self.params.train.learning_method in config.DL_METHODS:
+            model = models.load_model(model_filepath)
         else:
-            self.model = models.load_model(model_filepath)
+            model = load(model_filepath)
 
         return model

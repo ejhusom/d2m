@@ -32,29 +32,8 @@ from matplotlib.colors import LinearSegmentedColormap
 from lime import submodular_pick
 from tensorflow.keras import models
 
-from config import (
-    DATA_PATH,
-    ADEQUATE_MODELS_FILE_PATH,
-    DL_METHODS,
-    EXPLANATION_METHODS,
-    FEATURES_PATH,
-    INPUT_FEATURES_PATH,
-    INPUT_FEATURES_SEQUENCE_PATH,
-    INTERVALS_PLOT_PATH,
-    METRICS_FILE_PATH,
-    MODELS_PATH,
-    NON_DL_METHODS,
-    NON_SEQUENCE_LEARNING_METHODS,
-    OUTPUT_FEATURES_PATH,
-    OUTPUT_PATH,
-    PLOTS_PATH,
-    PREDICTION_PLOT_PATH,
-    PREDICTIONS_FILE_PATH,
-    PREDICTIONS_PATH,
-    SEQUENCE_LEARNING_METHODS
-)
-
-from utils import Struct
+from pipelinestage import PipelineStage
+from config import config
 
 colors = []
 for l in np.linspace(1, 0, 100):
@@ -64,20 +43,11 @@ for l in np.linspace(0, 1, 100):
 red_transparent_blue = LinearSegmentedColormap.from_list("red_transparent_blue", colors)
 
 
-class Explain:
-    def __init__(
-        self,
-        model_filepath,
-        train_filepath,
-        test_filepath,
-    ):
-        self.model_filepath = model_filepath
-        self.train_filepath = train_filepath
-        self.test_filepath = test_filepath
+class ExplainStage(PipelineStage):
+    def __init__(self):
+        super().__init__(stage_name="train")
 
-        # Read parameter file and convert to object
-        self.params = Struct(yaml.safe_load(open("params.yaml")))
-
+    def run(self):
         if not self.params.explain.generate_explanations:
             return 0
 
@@ -85,14 +55,14 @@ class Explain:
             self.params.explain.seed = np.random.randint(0)
 
         # Load data
-        self.train_data = np.load(self.train_filepath)
+        self.train_data = np.load(config.DATA_COMBINED_TRAIN_PATH)
         self.X_train = self.train_data["X"]
-        self.test_data = np.load(self.test_filepath)
+        self.test_data = np.load(config.DATA_COMBINED_TEST_PATH)
         self.X_test = self.test_data["X"]
         self.y_test = self.test_data["y"]
 
         # Read name of input columns and convert to list
-        self.input_columns = pd.read_csv(INPUT_FEATURES_PATH, index_col=0)
+        self.input_columns = pd.read_csv(config.INPUT_FEATURES_PATH, index_col=0)
         self.input_columns = self.input_columns.values.flatten().tolist()
 
         if self.params.train.ensemble:
@@ -100,13 +70,10 @@ class Explain:
         else:
             feature_importances = []
 
-            if self.params.train.learning_method in NON_DL_METHODS:
-                model = load(self.model_filepath)
-            else:
-                model = models.load_model(self.model_filepath)
+            model = self.load_model(config.MODELS_FILE_PATH)
 
             if self.params.explain.explanation_method == "all":
-                self.params.explain.explanation_method = EXPLANATION_METHODS
+                self.params.explain.explanation_method = config.EXPLANATION_METHODS
 
             if not isinstance(self.params.explain.explanation_method, list):
                 self.params.explain.explanation_method = [
@@ -133,31 +100,36 @@ class Explain:
                     by=f"feature_importance_{column_label}", ascending=False
                 )
                 sorted_feature_importance.to_csv(
-                    FEATURES_PATH / f"sorted_feature_importance_{column_label}.csv"
+                    config.FEATURES_PATH / f"sorted_feature_importance_{column_label}.csv"
                 )
 
                 feature_importance = feature_importance.transpose()
                 feature_importances.append(feature_importance)
 
+
             # Concat feature importance dataframe for all learning methods
             feature_importances = pd.concat(feature_importances)
-            feature_importances.to_csv(FEATURES_PATH / "feature_importances.csv")
+            feature_importances.to_csv(config.FEATURES_PATH / "feature_importances.csv")
 
             pd.options.plotting.backend = "plotly"
             fig = feature_importances.plot.bar()
-            fig.write_html(str(PLOTS_PATH / "feature_importances.html"))
+            fig.write_html(str(config.PLOTS_PATH / "feature_importances.html"))
+            fig.show()
+
+            fig = feature_importances.transpose().plot.bar()
+            fig.write_html(str(config.PLOTS_PATH / "feature_importances.html"))
             fig.show()
 
             # generate_explanation_report()
 
     def explain_ensemble(self):
-        with open(ADEQUATE_MODELS_FILE_PATH, "r") as f:
+        with open(config.ADEQUATE_MODELS_FILE_PATH, "r") as f:
             self.adequate_models = json.load(f)
 
         model_names = []
         adequate_methods = []
 
-        for f in os.listdir(MODELS_PATH):
+        for f in os.listdir(config.MODELS_PATH):
             if f.startswith("model"):
                 model_names.append(f)
 
@@ -170,18 +142,14 @@ class Explain:
                 method = os.path.splitext(name)[0].split("_")[-1]
                 adequate_methods.append(method)
 
-                # Load model (different methods depending on model type)
-                if method in DL_METHODS:
-                    model = models.load_model(MODELS_PATH / name)
-                else:
-                    model = load(MODELS_PATH / name)
+                model = self.load_model(config.MODELS_PATH / name)
 
                 print(f"Explaining {method}")
 
                 # If user has chosen to use all explanation methods, set the
                 # parameter accordingly
                 if self.params.explain.explanation_method == "all":
-                    self.params.explain.explanation_method = EXPLANATION_METHODS
+                    self.params.explain.explanation_method = config.EXPLANATION_METHODS
 
                 if not isinstance(self.params.explain.explanation_method, list):
                     self.params.explain.explanation_method = [
@@ -214,13 +182,13 @@ class Explain:
                     )
 
                     sorted_feature_importance.to_csv(
-                        FEATURES_PATH / f"sorted_feature_importance_{column_label}.csv"
+                        config.FEATURES_PATH / f"sorted_feature_importance_{column_label}.csv"
                     )
                     sorted_pos_feature_importance.to_csv(
-                        FEATURES_PATH / f"sorted_pos_feature_importance_{column_label}.csv"
+                        config.FEATURES_PATH / f"sorted_pos_feature_importance_{column_label}.csv"
                     )
                     sorted_neg_feature_importance.to_csv(
-                        FEATURES_PATH / f"sorted_neg_feature_importance_{column_label}.csv"
+                        config.FEATURES_PATH / f"sorted_neg_feature_importance_{column_label}.csv"
                     )
 
                     feature_importance = feature_importance.transpose()
@@ -228,13 +196,13 @@ class Explain:
 
         # Concat feature importance dataframe for all learning methods
         feature_importances = pd.concat(feature_importances)
-        feature_importances.to_csv(FEATURES_PATH / "feature_importances.csv")
+        feature_importances.to_csv(config.FEATURES_PATH / "feature_importances.csv")
 
         pd.options.plotting.backend = "plotly"
         fig = feature_importances.plot.bar(
                 labels=dict(index="", value="Feature importance (%)")
         )
-        fig.write_html(str(PLOTS_PATH / "feature_importances.html"))
+        fig.write_html(str(config.PLOTS_PATH / "feature_importances.html"))
         fig.show()
 
         adequate_methods = sorted(adequate_methods)
@@ -281,7 +249,7 @@ class Explain:
             random_state=self.params.explain.seed,
         )
 
-        if self.params.train.learning_method in NON_SEQUENCE_LEARNING_METHODS:
+        if self.params.train.learning_method in config.NON_SEQUENCE_LEARNING_METHODS:
             if self.params.sequentialize.window_size > 1:
                 input_columns_sequence = []
 
@@ -321,7 +289,7 @@ class Explain:
                     feature_names=self.input_columns,
                 )
                 shap.save_html(
-                    str(PLOTS_PATH) + "/shap_force_plot_single.html",
+                    str(config.PLOTS_PATH) + "/shap_force_plot_single.html",
                     shap_force_plot_single,
                 )
 
@@ -334,7 +302,7 @@ class Explain:
                     feature_names=self.input_columns,
                 )
                 shap.save_html(
-                    str(PLOTS_PATH) + "/shap_force_plot.html", shap_force_plot
+                    str(config.PLOTS_PATH) + "/shap_force_plot.html", shap_force_plot
                 )
 
                 # SHAP summary plot
@@ -350,7 +318,7 @@ class Explain:
                 plt.tight_layout()
 
                 plt.savefig(
-                    PLOTS_PATH / "shap_summary_plot.png", bbox_inches="tight", dpi=300
+                    config.PLOTS_PATH / "shap_summary_plot.png", bbox_inches="tight", dpi=300
                 )
 
         else:
@@ -383,7 +351,7 @@ class Explain:
                     feature_names=self.input_columns,
                 )
                 shap.save_html(
-                    str(PLOTS_PATH) + "/shap_force_plot_single.html",
+                    str(config.PLOTS_PATH) + "/shap_force_plot_single.html",
                     shap_force_plot_single,
                 )
 
@@ -402,7 +370,7 @@ class Explain:
                     show=False,
                 )
                 plt.savefig(
-                    PLOTS_PATH / "shap_image_plot.png", bbox_inches="tight", dpi=300
+                    config.PLOTS_PATH / "shap_image_plot.png", bbox_inches="tight", dpi=300
                 )
 
         shap_values = pd.DataFrame(shap_values, columns=self.input_columns).sort_index(
@@ -417,15 +385,29 @@ class Explain:
         else:
             mode = "regression"
 
-        if self.params.sequentialize.window_size == 1:
-            lime_explainer = lime.lime_tabular.LimeTabularExplainer(
+        if (
+                self.params.train.learning_method in config.SEQUENCE_LEARNING_METHODS 
+                and self.params.sequentialize.window_size > 1 
+                and self.params.train.ensemble == False
+            ):
+
+            lime_explainer = lime.lime_tabular.RecurrentTabularExplainer(
                 self.X_test,
                 feature_names=self.input_columns,
                 mode=mode,
                 discretize_continuous=False,
             )
         else:
-            lime_explainer = lime.lime_tabular.RecurrentTabularExplainer(
+            if self.params.sequentialize.window_size > 1:
+                input_columns_sequence = []
+
+                for c in self.input_columns:
+                    for i in range(self.params.sequentialize.window_size):
+                        input_columns_sequence.append(c + f"_{i}")
+
+                self.input_columns = input_columns_sequence
+
+            lime_explainer = lime.lime_tabular.LimeTabularExplainer(
                 self.X_test,
                 feature_names=self.input_columns,
                 mode=mode,
@@ -459,7 +441,7 @@ class Explain:
             )
 
             plt.savefig(
-                PLOTS_PATH / "lime_summary_plot.png", bbox_inches="tight", dpi=300
+                config.PLOTS_PATH / "lime_summary_plot.png", bbox_inches="tight", dpi=300
             )
 
         return xai_values
@@ -532,7 +514,7 @@ def get_directional_feature_importance(xai_values, label=""):
     plt.tight_layout()
     plt.gca().invert_yaxis()
     # plt.show()
-    plt.savefig(PLOTS_PATH / "directional_feature_importance.png")
+    plt.savefig(config.PLOTS_PATH / "directional_feature_importance.png")
 
     pos_feature_importance.name = "feature_importance_" + label
     neg_feature_importance.name = "feature_importance_" + label
@@ -560,21 +542,21 @@ def combine_ensemble_explanations(feature_importances, method="avg"):
         ascending=False
     )
     sorted_combined_feature_importances.to_csv(
-        FEATURES_PATH / "sorted_combined_feature_importances.csv"
+        config.FEATURES_PATH / "sorted_combined_feature_importances.csv"
     )
 
     return sorted_combined_feature_importances
 
 
 def generate_explanation_report():
-    with open(PLOTS_PATH / "prediction.html", "r") as infile:
+    with open(config.PLOTS_PATH / "prediction.html", "r") as infile:
         prediction_plot = infile.read()
 
-    with open(PLOTS_PATH / "feature_importances.html", "r") as infile:
+    with open(config.PLOTS_PATH / "feature_importances.html", "r") as infile:
         feature_importances_plot = infile.read()
 
     sorted_combined_feature_importances_filepath = (
-        FEATURES_PATH / "sorted_combined_feature_importances.csv"
+        config.FEATURES_PATH / "sorted_combined_feature_importances.csv"
     )
     sorted_combined_feature_importances_table = generate_html_table(
         sorted_combined_feature_importances_filepath
@@ -652,17 +634,8 @@ def generate_html_table(csv_file):
     table_html += "</table>"
     return table_html
 
+def main():
+    ExplainStage().run()
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        try:
-            Explain(
-                "assets/models/",
-                "assets/data/combined/train.npz",
-                "assets/data/combined/test.npz",
-            )
-        except:
-            print("Could not find model and test set.")
-            sys.exit(1)
-    else:
-        Explain(sys.argv[1], sys.argv[2], sys.argv[3])
+    main()

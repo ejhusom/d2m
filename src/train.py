@@ -154,7 +154,7 @@ class TrainStage(PipelineStage):
                     )
                     model.save(config.MODELS_PATH  / f"model_{name}.h5")
                 else:
-                    model.fit(X_train, y_train)
+                    model.fit(X_train, y_train.ravel())
                     dump(model, config.MODELS_PATH / f"model_{name}.h5")
 
             return 0

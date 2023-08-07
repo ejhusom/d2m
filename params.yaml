@@ -49,7 +49,7 @@ sequentialize:
   overlap: 0
   shuffle_samples: false
   target_size: 1
-  window_size: 5
+  window_size: 1
 split:
   shuffle_files: false
   train_split: 0.6
@@ -59,7 +59,7 @@ train:
   batch_size: 256
   dropout: 0.1
   early_stopping: true
-  ensemble: false
+  ensemble: true
   ff_dim: 4
   head_size: 256
   hyperparameter_tuning: false

@@ -162,13 +162,13 @@ stages:
         deps:
         - assets/data/combined/test.npz
         - assets/features/output_columns.csv
-        - assets/models/model.h5
+        - assets/models/
         - src/evaluate.py
         - src/config.py
         outs:
         - assets/plots/prediction.html
-        - assets/predictions/predictions.csv
-        - assets/predictions/true_values.csv
+        # - assets/predictions/predictions.csv
+        # - assets/predictions/true_values.csv
         params:
         - clean.classification
         - train.ensemble
