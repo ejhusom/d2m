@@ -116,9 +116,9 @@ class ExplainStage(PipelineStage):
             fig.write_html(str(config.PLOTS_PATH / "feature_importances.html"))
             fig.show()
 
-            fig = feature_importances.transpose().plot.bar()
-            fig.write_html(str(config.PLOTS_PATH / "feature_importances.html"))
-            fig.show()
+            # fig = feature_importances.transpose().plot.bar()
+            # fig.write_html(str(config.PLOTS_PATH / "feature_importances.html"))
+            # fig.show()
 
             # generate_explanation_report()
 
