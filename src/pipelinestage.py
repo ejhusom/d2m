@@ -9,6 +9,7 @@ Created:
     2023-08-02 onsdag 11:24:36 
 
 """
+import yaml
 from joblib import load
 from tensorflow.keras import models
 

@@ -15,6 +15,7 @@ import shutil
 import string
 import sys
 import time
+from pathlib import PosixPath
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -75,6 +76,9 @@ def find_files(dir_path, file_extension=[]):
     """
 
     filepaths = []
+
+    if isinstance(dir_path, PosixPath):
+        dir_path = str(dir_path)
 
     if type(file_extension) is not list:
         file_extension = [file_extension]
