@@ -83,7 +83,7 @@ class FeaturizeStage(PipelineStage):
         pd.DataFrame(input_columns).to_csv(config.INPUT_FEATURES_PATH)
 
 
-    def _featurize(self, df, features, remove_features, output_columns):
+    def _featurize(self, df: pd.DataFrame, features: list[str], remove_features: list[str], output_columns: list[str]) -> pd.DataFrame:
         """Process individual DataFrames."""
 
         # If no features are specified, use all columns as features
@@ -100,7 +100,9 @@ class FeaturizeStage(PipelineStage):
             # feature is used to engineer a feature, but the raw feature itself
             # should not be a part of the input.
             if (col not in self.params.featurize.variables_to_include) and (col not in output_columns):
+                print(f"Deleting column {col}")
                 del df[col]
+
 
             # Remove feature if it is non-numeric
             # FIXME: This sometimes removes features that actually are numeric.
@@ -114,6 +116,29 @@ class FeaturizeStage(PipelineStage):
                 df[col] = df[col].replace({True: 1, False: 0})
 
         df = self.compute_rolling_features(df, ignore_columns=output_columns)
+
+        # Store original columns
+        original_columns = set(df.columns)
+
+        # First remove columns that have too many nan values. This is done to
+        # avoid having a substantial amount of rows removed because certain
+        # features have a large amount of nans.
+        max_nan_ratio = 0.2
+        df = df.dropna(thresh=len(df) - len(df)*max_nan_ratio, axis=1)
+        # Then we remove nans from the remaining columns.
+        df = df.dropna()
+        # Count missing values in df
+        # df_na = df.isna().sum()
+        # features_with_too_many_nans = df_na[df_na >
+        #         max_nan_ratio*len(df)].index.tolist()
+
+        # print(df_na)
+        # breakpoint()
+        # Find dropped columns
+        dropped_columns = original_columns - set(df.columns)
+
+        # Log the dropped columns
+        print(f"WARNING: Dropped columns beacuse of too many NaNs: {', '.join(dropped_columns)}")
 
         if isinstance(self.params.featurize.remove_features, list):
             for col in self.params.featurize.remove_features:
@@ -305,8 +330,6 @@ class FeaturizeStage(PipelineStage):
                             name=f"{var}_peak_frequency"),
                     df], axis=1
                 )
-
-        df = df.dropna()
 
         return df
 

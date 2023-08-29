@@ -104,14 +104,14 @@ class TrainStage(PipelineStage):
             # model0 = nn.dnn(
             #     n_features,
             #     output_length=output_length,
-            #     activation_function=params["activation_function"],
+            #     activation_function=self.params.train.activation_function,
             #     output_activation=output_activation,
-            #     n_layers=params["n_layers"],
-            #     n_nodes=params["n_neurons"],
+            #     n_layers=self.params.train.n_layers,
+            #     n_nodes=self.params.train.n_neurons,
             #     loss=loss,
             #     metrics=metrics,
-            #     dropout=params["dropout"],
-            #     seed=params["seed"]
+            #     dropout=self.params.train.dropout,
+            #     seed=self.params.train.seed
             # )
             if self.params.clean.classification:
                 model0 = DecisionTreeClassifier()
@@ -148,8 +148,8 @@ class TrainStage(PipelineStage):
                     history = model0.fit(
                         X_train,
                         y_train,
-                        epochs=params["n_epochs"],
-                        batch_size=params["batch_size"],
+                        epochs=self.params.train.n_epochs,
+                        batch_size=self.params.train.batch_size,
                         validation_split=0.25,
                     )
                     model.save(config.MODELS_PATH  / f"model_{name}.h5")
@@ -161,7 +161,7 @@ class TrainStage(PipelineStage):
 
 
         # Build model
-        if self.params.train.learning_method in config.DL_METHODS and params["hyperparameter_tuning"]:
+        if self.params.train.learning_method in config.DL_METHODS and self.params.train.hyperparameter_tuning:
 
             # In order to perform model tuning, any old model_tuning results must
             # be deleted.
@@ -190,7 +190,7 @@ class TrainStage(PipelineStage):
                 X_train,
                 y_train,
                 epochs=200,
-                batch_size=params["batch_size"],
+                batch_size=self.params.train.batch_size,
                 validation_split=0.2,
             )
             tuner.results_summary()
@@ -202,14 +202,14 @@ class TrainStage(PipelineStage):
             model = build_model(
                 n_features,
                 output_length=output_length,
-                activation_function=params["activation_function"],
+                activation_function=self.params.train.activation_function,
                 output_activation=output_activation,
-                n_layers=params["n_layers"],
-                n_nodes=params["n_neurons"],
+                n_layers=self.params.train.n_layers,
+                n_nodes=self.params.train.n_neurons,
                 loss=loss,
                 metrics=metrics,
-                dropout=params["dropout"],
-                seed=params["seed"]
+                dropout=self.params.train.dropout,
+                seed=self.params.train.seed
             )
         elif self.params.train.learning_method.startswith("cnn"):
             hist_size = X_train.shape[-2]
@@ -218,19 +218,19 @@ class TrainStage(PipelineStage):
                 hist_size,
                 n_features,
                 output_length=output_length,
-                kernel_size=params["kernel_size"],
-                activation_function=params["activation_function"],
+                kernel_size=self.params.train.kernel_size,
+                activation_function=self.params.train.activation_function,
                 output_activation=output_activation,
                 loss=loss,
                 metrics=metrics,
-                n_layers=params["n_layers"],
-                n_filters=params["n_neurons"],
-                maxpooling=params["maxpooling"],
-                maxpooling_size=params["maxpooling_size"],
-                dropout=params["dropout"],
-                n_dense_layers=params["n_flattened_layers"],
-                n_nodes=params["n_flattened_nodes"],
-                seed=params["seed"]
+                n_layers=self.params.train.n_layers,
+                n_filters=self.params.train.n_neurons,
+                maxpooling=self.params.train.maxpooling,
+                maxpooling_size=self.params.train.maxpooling_size,
+                dropout=self.params.train.dropout,
+                n_dense_layers=self.params.train.n_flattened_layers,
+                n_nodes=self.params.train.n_flattened_nodes,
+                seed=self.params.train.seed
             )
         elif self.params.train.learning_method.startswith("rnn"):
             hist_size = X_train.shape[-2]
@@ -239,17 +239,17 @@ class TrainStage(PipelineStage):
                 hist_size,
                 n_features,
                 output_length=output_length,
-                unit_type=params["unit_type"].lower(),
-                activation_function=params["activation_function"],
+                unit_type=self.params.train.unit_type.lower(),
+                activation_function=self.params.train.activation_function,
                 output_activation=output_activation,
                 loss=loss,
                 metrics=metrics,
-                n_layers=params["n_layers"],
-                n_units=params["n_neurons"],
-                dropout=params["dropout"],
-                n_dense_layers=params["n_flattened_layers"],
-                n_nodes=params["n_flattened_nodes"],
-                seed=params["seed"]
+                n_layers=self.params.train.n_layers,
+                n_units=self.params.train.n_neurons,
+                dropout=self.params.train.dropout,
+                n_dense_layers=self.params.train.n_flattened_layers,
+                n_nodes=self.params.train.n_flattened_nodes,
+                seed=self.params.train.seed
             )
         elif self.params.train.learning_method.startswith("transformer"):
             hist_size = X_train.shape[-2]
@@ -258,32 +258,32 @@ class TrainStage(PipelineStage):
                 input_size_x=hist_size,
                 input_size_y=n_features,
                 output_length=output_length,
-                head_size=params["head_size"],
-                n_heads=params["n_heads"],
-                ff_dim=params["ff_dim"],
-                n_transformer_blocks=params["n_transformer_blocks"],
-                mlp_layers=params["n_flattened_layers"],
-                mlp_units=params["n_flattened_nodes"],
-                dropout=params["dropout"],
-                mlp_dropout=params["dropout"],
-                activation_function=params["activation_function"],
+                head_size=self.params.train.head_size,
+                n_heads=self.params.train.n_heads,
+                ff_dim=self.params.train.ff_dim,
+                n_transformer_blocks=self.params.train.n_transformer_blocks,
+                mlp_layers=self.params.train.n_flattened_layers,
+                mlp_units=self.params.train.n_flattened_nodes,
+                dropout=self.params.train.dropout,
+                mlp_dropout=self.params.train.dropout,
+                activation_function=self.params.train.activation_function,
                 output_activation=output_activation,
                 loss=loss,
                 metrics=metrics,
                 # hist_size,
                 # n_features,
                 # output_length=output_length,
-                # activation_function=params["activation_function"],
+                # activation_function=self.params.train.activation_function,
                 # output_activation=output_activation,
                 # loss=loss,
                 # metrics=metrics,
-                # n_layers=params["n_layers"],
-                # n_heads=params["n_heads"],
-                # n_units=params["n_neurons"],
-                # n_dense_layers=params["n_flattened_layers"],
-                # n_nodes=params["n_flattened_nodes"],
-                # dropout=params["dropout"],
-                # seed=params["seed"]
+                # n_layers=self.params.train.n_layers,
+                # n_heads=self.params.train.n_heads,
+                # n_units=self.params.train.n_neurons,
+                # n_dense_layers=self.params.train.n_flattened_layers,
+                # n_nodes=self.params.train.n_flattened_nodes,
+                # dropout=self.params.train.dropout,
+                # seed=self.params.train.seed
             )
         elif self.params.train.learning_method == "dt":
             if self.params.clean.classification:
@@ -295,7 +295,7 @@ class TrainStage(PipelineStage):
                 model = RandomForestClassifier()
             else:
                 model = RandomForestRegressor()
-            if params["hyperparameter_tuning"]:
+            if self.params.train.hyperparameter_tuning:
                 model = RandomizedSearchCV(
                     model,
                     {
@@ -311,7 +311,7 @@ class TrainStage(PipelineStage):
                 model = KNeighborsClassifier()
             else:
                 model = KNeighborsRegressor()
-            if params["hyperparameter_tuning"]:
+            if self.params.train.hyperparameter_tuning:
                 model = RandomizedSearchCV(
                     model,
                     {
@@ -335,7 +335,7 @@ class TrainStage(PipelineStage):
                     model = MultiOutputRegressor(xgb.XGBRegressor())
                 else:
                     model = xgb.XGBRegressor()
-            if params["hyperparameter_tuning"]:
+            if self.params.train.hyperparameter_tuning:
                 model = RandomizedSearchCV(
                     model,
                     {
@@ -423,7 +423,7 @@ class TrainStage(PipelineStage):
                 model = SVC()
             else:
                 model = SVR()
-            if params["hyperparameter_tuning"]:
+            if self.params.train.hyperparameter_tuning:
                 model = RandomizedSearchCV(
                     model,
                     {
@@ -437,7 +437,7 @@ class TrainStage(PipelineStage):
                 data_size=X_train.shape[0],
                 window_size=X_train.shape[1],
                 feature_size=X_train.shape[2],
-                batch_size=params["batch_size"],
+                batch_size=self.params.train.batch_size,
                 hidden_size=10,
             )  # TODO: Make this into a parameter
         elif self.params.train.learning_method == "bcnn":
@@ -445,8 +445,8 @@ class TrainStage(PipelineStage):
                 data_size=X_train.shape[0],
                 window_size=X_train.shape[1],
                 feature_size=X_train.shape[2],
-                kernel_size=params["kernel_size"],
-                batch_size=params["batch_size"],
+                kernel_size=self.params.train.kernel_size,
+                batch_size=self.params.train.batch_size,
                 n_steps_out=output_length,
                 output_activation=output_activation,
                 classification=self.params.clean.classification,
@@ -454,7 +454,7 @@ class TrainStage(PipelineStage):
             # model = nn.bcnn_edward(data_size=X_train.shape[0],
             #                 window_size=X_train.shape[1],
             #                 feature_size=X_train.shape[2],
-            #                 kernel_size=params["kernel_size"],
+            #                 kernel_size=self.params.train.kernel_size,
             #                 n_steps_out=output_length,
             #                 output_activation=output_activation,
             #                 classification=self.params.clean.classification)
@@ -470,21 +470,21 @@ class TrainStage(PipelineStage):
             print(model.summary())
             plot_neural_network_architecture(model)
 
-            # if params["cross_validation"]:
+            # if self.params.train.cross_validation:
             #     if self.params.clean.classification:
             #         keras_wrapper = getattr(tf_sklearn, "KerasClassifier")
             #     else:
             #         keras_wrapper = getattr(tf_sklearn, "KerasRegressor")
 
-            #     estimator = keras_wrapper(build_fn=buildmodel, epochs=params["epochs"], batch_size=params["batch_size"], verbose=0)
+            #     estimator = keras_wrapper(build_fn=buildmodel, epochs=self.params.train.epochs, batch_size=self.params.train.batch_size, verbose=0)
             #     kfold= RepeatedKFold(n_splits=5, n_repeats=100)
             #     results= cross_val_score(estimator, x, y, cv=kfold, n_jobs=2)  # 2 cpus
             #     results.mean()  # Mean MSE
 
-            if params["early_stopping"]:
+            if self.params.train.early_stopping:
                 early_stopping = EarlyStopping(
                     monitor="val_" + monitor_metric,
-                    patience=params["patience"],
+                    patience=self.params.train.patience,
                     verbose=4,
                     restore_best_weights=True,
                 )
@@ -498,7 +498,7 @@ class TrainStage(PipelineStage):
                     X_train,
                     y_train,
                     epochs=10,
-                    batch_size=params["batch_size"],
+                    batch_size=self.params.train.batch_size,
                     validation_split=0.25,
                 )
 
@@ -508,8 +508,8 @@ class TrainStage(PipelineStage):
                 history = model.fit(
                     X_train,
                     y_train,
-                    epochs=params["n_epochs"],
-                    batch_size=params["batch_size"],
+                    epochs=self.params.train.n_epochs,
+                    batch_size=self.params.train.batch_size,
                     validation_split=0.25,
                     callbacks=[early_stopping, model_checkpoint],
                 )
@@ -521,8 +521,8 @@ class TrainStage(PipelineStage):
                 history = model.fit(
                     X_train,
                     y_train,
-                    epochs=params["n_epochs"],
-                    batch_size=params["batch_size"],
+                    epochs=self.params.train.n_epochs,
+                    batch_size=self.params.train.batch_size,
                     validation_split=0.25,
                 )
 

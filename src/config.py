@@ -25,6 +25,7 @@ class Config:
         ]
         self.SEQUENCE_LEARNING_METHODS = ["cnn", "rnn"]
         self.NON_SEQUENCE_LEARNING_METHODS = [method for method in self.NON_DL_METHODS if method not in self.SEQUENCE_LEARNING_METHODS]
+        self.NON_SEQUENCE_LEARNING_METHODS += [method for method in self.DL_METHODS if method not in self.SEQUENCE_LEARNING_METHODS]
         self.METHODS_IN_ENSEMBLE = [
             "dt", "rf", "gb", "xgb", "sgd", "lgbm"
         ]

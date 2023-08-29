@@ -92,7 +92,7 @@ class EvaluateStage(PipelineStage):
 
             for name in model_names:
                 method = os.path.splitext(name)[0].split("_")[-1]
-                model = self.load_model(config.MODELS_PATH / name)
+                model = self.load_model(config.MODELS_PATH / name, method)
 
                 y_pred = model.predict(X_test)
                 y_preds[method] = y_pred

@@ -142,7 +142,8 @@ class ExplainStage(PipelineStage):
                 method = os.path.splitext(name)[0].split("_")[-1]
                 adequate_methods.append(method)
 
-                model = self.load_model(config.MODELS_PATH / name)
+                model = self.load_model(config.MODELS_PATH / name,
+                        method=method)
 
                 print(f"Explaining {method}")
 
@@ -249,7 +250,7 @@ class ExplainStage(PipelineStage):
             random_state=self.params.explain.seed,
         )
 
-        if self.params.train.learning_method in config.NON_SEQUENCE_LEARNING_METHODS:
+        if self.params.train.learning_method in config.NON_SEQUENCE_LEARNING_METHODS or self.params.train.ensemble == True:
             if self.params.sequentialize.window_size > 1:
                 input_columns_sequence = []
 
@@ -322,7 +323,7 @@ class ExplainStage(PipelineStage):
                 )
 
         else:
-            if learning_method == "rnn":
+            if self.params.train.learning_method == "rnn":
                 print("SHAP cannot be used with RNN models. Refer to the following issue: https://github.com/slundberg/shap/issues/2808")
                 return 0
 
@@ -508,13 +509,13 @@ def get_directional_feature_importance(xai_values, label=""):
     plt.yticks(ind, top_features)
 
     plt.axvline(0, color='k')
-    plt.xlabel('Average SHAP value')
-    plt.title('Average positive and negative SHAP values for the top 10 impactful features')
+    plt.xlabel('Average feature importance')
+    plt.title('Average positive and negative feature importance for the top 10 impactful features')
     plt.legend(loc='best')
     plt.tight_layout()
     plt.gca().invert_yaxis()
     # plt.show()
-    plt.savefig(config.PLOTS_PATH / "directional_feature_importance.png")
+    plt.savefig(config.PLOTS_PATH / f"directional_feature_importance_{label}.png")
 
     pos_feature_importance.name = "feature_importance_" + label
     neg_feature_importance.name = "feature_importance_" + label

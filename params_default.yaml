@@ -106,14 +106,15 @@ train:
     head_size: 256
 
 evaluate:
-     performance_metric: r2
-     threshold_for_ensemble_models: -1000
+    performance_metric: r2
+    threshold_for_ensemble_models: -1000
     dropout_uncertainty_estimation: True
     uncertainty_estimation_sampling_size: 100
     show_inputs: True
 
 explain: 
+    generate_explanations: True
     number_of_background_samples: 10
     number_of_summary_samples: 20
-     explanation_method: shap
-     seed: 2020
+    explanation_method: shap
+    seed: 2020

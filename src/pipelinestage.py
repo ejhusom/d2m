@@ -43,9 +43,12 @@ class PipelineStage():
         if self.params.profile.dataset is not None:
             self.raw_data_path = config.DATA_PATH_RAW / self.params.profile.dataset
     
-    def load_model(self, model_filepath):
+    def load_model(self, model_filepath, method=None):
 
-        if self.params.train.learning_method in config.DL_METHODS:
+        if method is None:
+            method = self.params.train.learning_method
+
+        if method in config.DL_METHODS:
             model = models.load_model(model_filepath)
         else:
             model = load(model_filepath)
