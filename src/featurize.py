@@ -117,28 +117,30 @@ class FeaturizeStage(PipelineStage):
 
         df = self.compute_rolling_features(df, ignore_columns=output_columns)
 
-        # Store original columns
-        original_columns = set(df.columns)
 
         # First remove columns that have too many nan values. This is done to
         # avoid having a substantial amount of rows removed because certain
         # features have a large amount of nans.
         max_nan_ratio = 0.2
-        df = df.dropna(thresh=len(df) - len(df)*max_nan_ratio, axis=1)
+
+        # Store original columns
+        original_columns = set(df.columns)
+        # df = df.dropna(thresh=len(df) - len(df)*max_nan_ratio, axis=1)
+        # # Find dropped columns
+        # dropped_columns = original_columns - set(df.columns)
+        # Log the dropped columns
+        # print(f"WARNING: Dropped columns beacuse of too many NaNs: {', '.join(dropped_columns)}")
+
+        # Count missing values in df
+        df_na = df.isna().sum()
+        features_with_too_many_nans = df_na[df_na >
+                max_nan_ratio*len(df)].index.tolist()
+
+        if len(features_with_too_many_nans) > 0:
+            print(f"WARNING: The following columns contain more than {int(max_nan_ratio*100)}% NaNs, and will lead to a large amount of rows being removed when the data is cleaned for NaNs.  Consider removing these features: {features_with_too_many_nans}")
+
         # Then we remove nans from the remaining columns.
         df = df.dropna()
-        # Count missing values in df
-        # df_na = df.isna().sum()
-        # features_with_too_many_nans = df_na[df_na >
-        #         max_nan_ratio*len(df)].index.tolist()
-
-        # print(df_na)
-        # breakpoint()
-        # Find dropped columns
-        dropped_columns = original_columns - set(df.columns)
-
-        # Log the dropped columns
-        print(f"WARNING: Dropped columns beacuse of too many NaNs: {', '.join(dropped_columns)}")
 
         if isinstance(self.params.featurize.remove_features, list):
             for col in self.params.featurize.remove_features:
@@ -311,15 +313,15 @@ class FeaturizeStage(PipelineStage):
                     df], axis=1
                 )
 
-        if isinstance(params["featurize"]["add_variance"], list):
-            for var in params["featurize"]["add_variance"]:
-                # df[f"{var}_variance"] = np.var(df[var])
-                df = pd.concat([
-                        pd.Series(
-                            np.var(df[var]),
-                            name=f"{var}_variance"),
-                    df], axis=1
-                )
+        # if isinstance(params["featurize"]["add_variance"], list):
+        #     for var in params["featurize"]["add_variance"]:
+        #         # df[f"{var}_variance"] = np.var(df[var])
+        #         df = pd.concat([
+        #                 pd.Series(
+        #                     np.var(df[var]),
+        #                     name=f"{var}_variance"),
+        #             df], axis=1
+        #         )
 
         if isinstance(params["featurize"]["add_peak_frequency"], list):
             for var in params["featurize"]["add_peak_frequency"]:
