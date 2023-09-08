@@ -1,9 +1,12 @@
-# d2m
+# d2m - Data to model
 
-Data to model - d2m.
+A machine learning pipeline enabling Responsible AI:
 
-This is a project using [DVC](https://dvc.org/) for setting up a flexible and
-robust pipeline for machine learning experiments.
+- **Explainable AI**, using SHAP, LIME or both.
+- **Uncertainty estimation**, using Bayesian dropout for neural networks.
+- **Carbon emissions tracking and reporting**, using [CodeCarbon](https://codecarbon.io/).
+
+**d2m** lets you easily create and evaluate machine learning models for tabular and time series data, with built-in data profiling and feature engineering.
 
 
 ## Usage
