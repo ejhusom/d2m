@@ -191,6 +191,7 @@ stages:
         - src/config.py
         outs:
         - assets/features/feature_importances.csv
+        - assets/features/feature_importances_adequate_models.csv
         params:
         - train.ensemble
         # Number of samples to use for generating shap values
@@ -199,6 +200,17 @@ stages:
         - explain.seed
         - explain.explanation_method
         - explain.generate_explanations
+
+    combine_explanations:
+        cmd: python3 src/combine_explanations.py
+        deps:
+        - assets/features/feature_importances_adequate_models.csv
+        - assets/adequate_models/adequate_models.json
+        - src/combine_explanations.py
+        - src/config.py
+        params:
+        - combine_explanations.combination_method
+        - combine_explanations.weighting_method
 
       # llm:
       #   cmd: python3 src/llm.py

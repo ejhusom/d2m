@@ -118,3 +118,7 @@ explain:
     number_of_summary_samples: 20
     explanation_method: shap
     seed: 2020
+
+combine_explanations:
+     combination_method: weighted
+     weighting_method: softmax
