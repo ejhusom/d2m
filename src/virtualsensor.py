@@ -18,7 +18,7 @@ import yaml
 
 from clean import *
 from combine import *
-from config import *
+from config import config
 from evaluate import *
 from featurize import *
 from preprocess_utils import split_X_sequences
@@ -32,13 +32,13 @@ from train import *
 class VirtualSensor:
     def __init__(
         self,
-        params_file=PARAMS_FILE_PATH,
-        profile_file=PROFILE_JSON_PATH,
-        input_features_file=INPUT_FEATURES_PATH,
-        output_features_file=OUTPUT_FEATURES_PATH,
-        input_scaler_file=INPUT_SCALER_PATH,
-        output_scaler_file=OUTPUT_SCALER_PATH,
-        model_file=MODELS_FILE_PATH,
+        params_file=config.PARAMS_FILE_PATH,
+        profile_file=config.PROFILE_JSON_PATH,
+        input_features_file=config.INPUT_FEATURES_PATH,
+        output_features_file=config.OUTPUT_FEATURES_PATH,
+        input_scaler_file=config.INPUT_SCALER_PATH,
+        output_scaler_file=config.OUTPUT_SCALER_PATH,
+        model_file=config.MODELS_FILE_PATH,
         verbose=True,
     ):
         """Initialize virtual sensor with the needed assets.
@@ -117,8 +117,8 @@ class VirtualSensor:
 
         X = np.array(df)
 
-        input_scaler = joblib.load(INPUT_SCALER_PATH)
-        output_scaler = joblib.load(OUTPUT_SCALER_PATH)
+        input_scaler = joblib.load(config.INPUT_SCALER_PATH)
+        output_scaler = joblib.load(config.OUTPUT_SCALER_PATH)
 
         if input_method is not None:
             X = input_scaler.transform(X)
@@ -129,9 +129,9 @@ class VirtualSensor:
             X = flatten_sequentialized(X)
 
         if learning_method in NON_DL_METHODS:
-            model = load(MODELS_FILE_PATH)
+            model = load(config.MODELS_FILE_PATH)
         else:
-            model = models.load_model(MODELS_FILE_PATH)
+            model = models.load_model(config.MODELS_FILE_PATH)
 
         y_pred = model.predict(X)
 

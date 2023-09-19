@@ -211,6 +211,7 @@ stages:
         params:
         - combine_explanations.combination_method
         - combine_explanations.weighting_method
+        - combine_explanations.agreement_method
 
       # llm:
       #   cmd: python3 src/llm.py

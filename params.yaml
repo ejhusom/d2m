@@ -125,4 +125,5 @@
 
  combine_explanations:
      combination_method: weighted
-     weighting_method: zscore
+     weighting_method: normalize
+     agreement_method: spearman

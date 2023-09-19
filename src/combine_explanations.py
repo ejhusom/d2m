@@ -12,9 +12,12 @@ Created:
 import csv
 import os
 
+import matplotlib.pyplot as plt
+import seaborn as sns
 import pandas as pd
 import numpy as np
 import json
+from scipy.stats import pearsonr, spearmanr
 
 from pipelinestage import PipelineStage
 from config import config
@@ -33,6 +36,12 @@ class CombineExplanationsStage(PipelineStage):
                 weighting_method=self.params.combine_explanations.weighting_method
                 )
 
+        agreement_matrix, agreement_score, agreement_std = evaluate_explanation_agreement(feature_importances,
+                method=self.params.combine_explanations.agreement_method)
+
+        print(agreement_score)
+        print(agreement_std)
+
         generate_explanation_report()
 
 def combine_ensemble_explanations(feature_importances, method="avg",
@@ -45,8 +54,8 @@ def combine_ensemble_explanations(feature_importances, method="avg",
 
     """
 
-    # feature_importances.fillna(0, inplace=True)
-    feature_importances.dropna()
+    # Drop the models with invalid (nan) feature importances.
+    feature_importances = feature_importances.dropna()
 
     if method in ["avg", "average", "mean"]:
         combined_feature_importances = feature_importances.mean(0, numeric_only=True)
@@ -185,6 +194,52 @@ def combine_ensemble_explanations(feature_importances, method="avg",
 
     return sorted_combined_feature_importances
 
+def evaluate_explanation_agreement(feature_importances, method="spearman"):
+
+    # Drop the models with invalid (nan) feature importances.
+    feature_importances = feature_importances.dropna()
+
+    model_names = feature_importances.index
+    num_models = len(feature_importances)
+    correlation_matrix = np.zeros((num_models, num_models))
+
+    if method == "pearson":
+        for i in range(num_models):
+            for j in range(num_models):
+                correlation, _ = pearsonr(
+                        feature_importances.iloc[i],
+                        feature_importances.iloc[j]
+                )
+                correlation_matrix[i, j] = correlation
+    elif method == "spearman":
+        for i in range(num_models):
+            for j in range(num_models):
+                correlation, _ = spearmanr(
+                        feature_importances.iloc[i],
+                        feature_importances.iloc[j]
+                )
+                correlation_matrix[i, j] = correlation
+
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", cbar=True, square=True,
+                xticklabels=model_names, yticklabels=model_names, vmin=-1,
+                vmax=1)
+    plt.title(f"Pairwise {method} correlation between models")
+    plt.savefig(config.PLOTS_PATH / "agreement_matrix.png")
+
+    # Extract lower triangle of correlation matrix, i.e., the relevant values
+    # for computing the average agreement.
+    relevant_values = []
+
+    for i in range(num_models):
+        for j in range(num_models):
+            if j < i:
+                relevant_values.append(correlation_matrix[i, j])
+
+    agreement = np.mean(relevant_values)
+    agreement_std = np.std(relevant_values)
+
+    return correlation_matrix, agreement, agreement_std
 
 def generate_explanation_report():
     with open(config.PLOTS_PATH / "prediction.html", "r") as infile:
