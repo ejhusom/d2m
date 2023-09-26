@@ -26,6 +26,7 @@ from config import config
 from preprocess_utils import find_files
 from pipelinestage import PipelineStage
 
+@track_emissions(project_name="scale")
 class ScaleStage(PipelineStage):
     def __init__(self):
         super().__init__(stage_name="scale")
@@ -141,8 +142,6 @@ class NoScaler:
 
     def fit_transform(self, data):
         return data
-
-
 
 def main():
     ScaleStage().run()

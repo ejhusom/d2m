@@ -17,7 +17,7 @@ from config import config
 from preprocess_utils import find_files
 from pipelinestage import PipelineStage
 
-# @track_emissions(project_name="profiling", offline=True, country_iso_code="NOR")
+@track_emissions(project_name="profiling")
 class ProfileStage(PipelineStage):
     
     def __init__(self):

@@ -22,6 +22,7 @@ from pipelinestage import PipelineStage
 from preprocess_utils import find_files
 
 
+@track_emissions(project_name="split")
 class SplitStage(PipelineStage):
     """Split data into train and test set.
 

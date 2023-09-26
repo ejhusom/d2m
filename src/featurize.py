@@ -25,6 +25,7 @@ from config import config
 from pipelinestage import PipelineStage
 from preprocess_utils import find_files, move_column
 
+@track_emissions(project_name="featurize")
 class FeaturizeStage(PipelineStage):
 
     def __init__(self):

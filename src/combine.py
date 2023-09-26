@@ -20,6 +20,7 @@ from pipelinestage import PipelineStage
 from preprocess_utils import find_files
 
 
+@track_emissions(project_name="combine")
 class CombineStage(PipelineStage):
     """Combine data from multiple input files into one dataset.
 

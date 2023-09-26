@@ -23,6 +23,7 @@ from config import config
 from pipelinestage import PipelineStage
 from preprocess_utils import find_files
 
+@track_emissions(project_name="clean")
 class CleanStage(PipelineStage):
 
     def __init__(self):

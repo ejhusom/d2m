@@ -25,6 +25,7 @@ from pipelinestage import PipelineStage
 from preprocess_utils import find_files, flatten_sequentialized, split_sequences
 
 
+@track_emissions(project_name="sequentialize")
 class SequentializeStage(PipelineStage):
     """Make sequences out of tabular data."""
 

@@ -17,11 +17,13 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 import json
+from codecarbon import track_emissions
 from scipy.stats import pearsonr, spearmanr
 
 from pipelinestage import PipelineStage
 from config import config
 
+@track_emissions(project_name="combine_explanations")
 class CombineExplanationsStage(PipelineStage):
     def __init__(self):
         super().__init__(stage_name="combine_explanations")
@@ -199,6 +201,11 @@ def evaluate_explanation_agreement(feature_importances, method="spearman"):
     # Drop the models with invalid (nan) feature importances.
     feature_importances = feature_importances.dropna()
 
+    # All values lower than a threshold is set to 0
+    threshold = 0.02
+    feature_importances = feature_importances[feature_importances > threshold]
+    feature_importances = feature_importances.fillna(0)
+
     model_names = feature_importances.index
     num_models = len(feature_importances)
     correlation_matrix = np.zeros((num_models, num_models))
@@ -333,3 +340,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

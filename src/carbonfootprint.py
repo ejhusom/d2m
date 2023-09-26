@@ -9,6 +9,7 @@ Created:
     2023-04-14 fredag 15:15:13 
 
 """
+import logging
 import re
 import subprocess
 
@@ -16,6 +17,13 @@ import codecarbon
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+logging.basicConfig(
+        filename='d2m.log', 
+        filemode='a', 
+        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+        level=logging.INFO,
+)
 
 def read_emissions_file(filepath):
     """Read emissions file.
@@ -55,6 +63,7 @@ def run_pipeline():
 
     result = subprocess.run(["dvc", "repro"], check=True, capture_output=True)
     dvc_output = result.stdout.decode("utf-8")
+    print(dvc_output)
     
     # define the regex pattern for finding skipped stages
     skipped_stages_pattern = r"Stage '(.*?)' didn't change, skipping"
@@ -62,14 +71,11 @@ def run_pipeline():
     # find all matches using the regex pattern
     skipped_stages = re.findall(skipped_stages_pattern, dvc_output)
 
-    # print the matches
-    print(skipped_stages)
-
     emissions_file_headers = list(codecarbon.output.EmissionsData.__annotations__.keys())
+    print(emissions_file_headers)
 
     for stage in skipped_stages:
-        print(f"Stage {stage} was skipped.")
-
+        logging.info(f"Stage {stage} was skipped.")
 
 
 def main():

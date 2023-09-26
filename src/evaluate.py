@@ -47,6 +47,7 @@ import neural_networks as nn
 from config import config
 from pipelinestage import PipelineStage
 
+@track_emissions(project_name="evaluate")
 class EvaluateStage(PipelineStage):
 
     def __init__(self):
