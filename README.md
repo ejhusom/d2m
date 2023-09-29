@@ -1,6 +1,6 @@
 # d2m - Data to model
 
-A machine learning pipeline enabling Responsible AI:
+A machine learning pipeline for **trustworthy** and **green** models, enabling responsible AI:
 
 - **Explainable AI**, using SHAP, LIME or both.
 - **Uncertainty estimation**, using Bayesian dropout for neural networks.
