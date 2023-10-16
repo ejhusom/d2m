@@ -23,11 +23,11 @@ from scipy.stats import pearsonr, spearmanr
 from pipelinestage import PipelineStage
 from config import config
 
-@track_emissions(project_name="combine_explanations")
 class CombineExplanationsStage(PipelineStage):
     def __init__(self):
         super().__init__(stage_name="combine_explanations")
 
+    @track_emissions(project_name="combine_explanations")
     def run(self):
 
         feature_importances = pd.read_csv(config.FEATURES_PATH /

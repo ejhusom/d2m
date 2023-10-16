@@ -20,7 +20,6 @@ from pipelinestage import PipelineStage
 from preprocess_utils import find_files
 
 
-@track_emissions(project_name="combine")
 class CombineStage(PipelineStage):
     """Combine data from multiple input files into one dataset.
 
@@ -32,6 +31,7 @@ class CombineStage(PipelineStage):
     def __init__(self):
         super().__init__(stage_name="combine")
 
+    @track_emissions(project_name="combine")
     def run(self):
 
         filepaths = find_files(config.DATA_SEQUENTIALIZED_PATH, file_extension=".npz")

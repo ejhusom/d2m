@@ -22,7 +22,6 @@ from pipelinestage import PipelineStage
 from preprocess_utils import find_files
 
 
-@track_emissions(project_name="split")
 class SplitStage(PipelineStage):
     """Split data into train and test set.
 
@@ -36,6 +35,7 @@ class SplitStage(PipelineStage):
     def __init__(self):
         super().__init__(stage_name="clean")
 
+    @track_emissions(project_name="split")
     def run(self):
 
         filepaths = find_files(config.DATA_FEATURIZED_PATH, file_extension=".npy")

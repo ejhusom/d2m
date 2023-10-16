@@ -25,7 +25,6 @@ from pipelinestage import PipelineStage
 from preprocess_utils import find_files, flatten_sequentialized, split_sequences
 
 
-@track_emissions(project_name="sequentialize")
 class SequentializeStage(PipelineStage):
     """Make sequences out of tabular data."""
 
@@ -33,6 +32,7 @@ class SequentializeStage(PipelineStage):
     def __init__(self):
         super().__init__(stage_name="sequentialize")
 
+    @track_emissions(project_name="sequentialize")
     def run(self):
         filepaths = find_files(config.DATA_SCALED_PATH, file_extension=".npz")
 

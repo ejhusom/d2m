@@ -43,11 +43,11 @@ for l in np.linspace(0, 1, 100):
 red_transparent_blue = LinearSegmentedColormap.from_list("red_transparent_blue", colors)
 
 
-@track_emissions(project_name="explain")
 class ExplainStage(PipelineStage):
     def __init__(self):
         super().__init__(stage_name="explain")
 
+    @track_emissions(project_name="explain")
     def run(self):
         if not self.params.explain.generate_explanations:
             return 0

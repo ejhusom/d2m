@@ -1,6 +1,6 @@
  # Broaching tool wear
  profile:
-     dataset: broaching_with_tool_wear
+     dataset: broaching
 
  clean:
      target: tool_wear
@@ -21,7 +21,7 @@
          - acc2_z
 
      # By setting this to True, the add_-options below are overrided.
-     use_all_engineered_features_on_all_variables: True
+     use_all_engineered_features_on_all_variables: False
 
      # List the variables below each add_* to add engineered feature
      add_sum:
@@ -77,14 +77,14 @@
 
  train:
      seed: 2023
-     learning_method: gradientboosting
+     learning_method: dnn
      ensemble: True
      hyperparameter_tuning: False
 
      # Parameters for deep learning (dnn, cnn, rnn):
-     n_epochs: 1000
+     n_epochs: 3
      early_stopping: True
-     patience: 100
+     patience: 10
      activation_function: relu
      batch_size: 256
      n_layers: 1

@@ -9,6 +9,7 @@ Created:
 import sys
 
 import pandas as pd
+import json
 import yaml
 from codecarbon import track_emissions
 from ydata_profiling import ProfileReport
@@ -17,12 +18,12 @@ from config import config
 from preprocess_utils import find_files
 from pipelinestage import PipelineStage
 
-@track_emissions(project_name="profiling")
 class ProfileStage(PipelineStage):
     
     def __init__(self):
         super().__init__(stage_name="profile")
         
+    @track_emissions(project_name="profiling")
     def run(self):
         """Creates a profile report of a data set.
 
@@ -52,11 +53,19 @@ class ProfileStage(PipelineStage):
             lazy=False,
             sort=None,
         )
-    
-    
-        # Save report to files.
-        profile.to_file(config.PROFILE_JSON_PATH)
+
+        # Save report to HTML
         profile.to_file(config.PROFILE_HTML_PATH)
+
+        # Delete unnecessary information to save disk space
+        profile_json = json.loads(profile.json)
+
+        for variable in profile_json["variables"].keys():
+            del profile_json["variables"][variable]["value_counts_without_nan"]
+            del profile_json["variables"][variable]["value_counts_index_sorted"]
+
+        with open(config.PROFILE_JSON_PATH, "w") as f:
+            json.dump(profile_json, f)
 
 if __name__ == "__main__":
 

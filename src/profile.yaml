@@ -42,7 +42,7 @@ vars:
         skewness_threshold: 20
         low_categorical_threshold: 5
 # Set to zero to disable
-        chi_squared_threshold: 0.999
+        chi_squared_threshold: 0
     cat:
         length: True
         characters: True

@@ -8,6 +8,7 @@ Created:
     2020-09-17
 
 """
+from collections import defaultdict
 import json
 import os
 import shutil
@@ -21,7 +22,7 @@ import plotly.graph_objects as go
 import seaborn as sn
 import tensorflow as tf
 import yaml
-from codecarbon import track_emissions
+from codecarbon import track_emissions, EmissionsTracker
 from joblib import load
 from plotly.subplots import make_subplots
 from sklearn.base import RegressorMixin
@@ -47,14 +48,15 @@ import neural_networks as nn
 from config import config
 from pipelinestage import PipelineStage
 
-@track_emissions(project_name="evaluate")
 class EvaluateStage(PipelineStage):
 
     def __init__(self):
         super().__init__(stage_name="evaluate")
 
+    @track_emissions(project_name="evaluate")
     def run(self):
-
+        tracker = EmissionsTracker(project_name="inference")
+        emissions = {}
         if self.params.evaluate.performance_metric == "auto":
             if self.params.clean.classification:
                 self.params.evaluate.performance_metric = "accuracy"
@@ -92,11 +94,21 @@ class EvaluateStage(PipelineStage):
             model_names = sorted(model_names)
 
             for name in model_names:
+                task_name = f"inference_{name}"
                 method = os.path.splitext(name)[0].split("_")[-1]
                 model = self.load_model(config.MODELS_PATH / name, method)
 
                 y_pred = model.predict(X_test)
                 y_preds[method] = y_pred
+
+                # tracker.start_task(task_name)
+                # self.run_inference(model, X_test[0], n=10)
+                # inference_emissions = tracker.stop_task()
+                # inference_emissions_json = json.loads(inference_emissions.toJSON())
+                emissions1 = measure_inference_emissions(tracker, task_name + "_1", model, X_test[0])
+                emissions2 = measure_inference_emissions2(tracker, task_name + "_2", model, X_test[0])
+                emissions[name] = emissions1
+                # emissions[name] = inference_emissions_json
 
             adequate_models = {}
 
@@ -189,6 +201,9 @@ class EvaluateStage(PipelineStage):
 
             plot_prediction(y_test, y_preds, inputs=inputs, info="ensemble")
 
+            with open(config.EMISSIONS_INFERENCE_FILE_PATH, "w") as f:
+                json.dump(emissions, f)
+
             return 0
 
         # pandas data frame to store predictions and ground truth.
@@ -256,11 +271,6 @@ class EvaluateStage(PipelineStage):
 
         # Regression:
         else:
-            print(y_test)
-            print(y_pred)
-            print(y_test.shape)
-            print(y_pred.shape)
-            print("========")
             mse = mean_squared_error(y_test, y_pred)
             rmse = mean_squared_error(y_test, y_pred, squared=False)
             mape = mean_absolute_percentage_error(y_test, y_pred)
@@ -305,6 +315,16 @@ class EvaluateStage(PipelineStage):
             pass
 
         save_predictions(pd.DataFrame(y_pred))
+
+        task_name = f"inference_{self.params.train.learning_method}"
+        # tracker.start_task(task_name)
+        # self.run_inference(model, X_test[0], n=10)
+        # inference_emissions = tracker.stop_task()
+        # inference_emissions_json = json.loads(inference_emissions.toJSON())
+        emissions[name] = inference_emissions_json
+
+        with open(config.EMISSIONS_INFERENCE_FILE_PATH, "w") as f:
+            json.dump(emissions, f)
 
 def plot_confusion(y_test, y_pred, y_pred_uncertainty=None):
     """Plotting confusion matrix of a classification model."""
@@ -590,6 +610,77 @@ def plot_sequence_predictions(y_true, y_pred):
 
 
     fig.write_html(str(config.PLOTS_PATH / "prediction_sequences.html"))
+
+def measure_inference_emissions2(tracker, task_name, model, sample, n=10):
+    # Measure inference emissions. Take the average of n inferences.
+    sample = [sample]
+    inference_emissions = []
+    for i in range(n):
+        tracker.start_task(task_name)
+        _ = model.predict(sample)
+        emissions = tracker.stop_task()
+        single_inference_emissions = json.loads(emissions.toJSON())
+        inference_emissions.append(single_inference_emissions)
+
+    numeric_sum = defaultdict(float)
+    non_numeric_values = {}
+
+    count = 0
+
+    # Iterate through the dictionaries and accumulate the numeric values
+    for data_dict in inference_emissions:
+        count += 1
+        for key, value in data_dict.items():
+            if isinstance(value, (int, float)):
+                numeric_sum[key] += value
+            else:
+                non_numeric_values[key] = value
+
+    # Calculate the average of numeric values
+    average_values = {key: value / count for key, value in numeric_sum.items()}
+
+    # Combine the average numeric values with the non-numeric values
+    average_inference_emissions = {**average_values, **non_numeric_values}
+
+    with open("v2.json", "w") as f:
+        json.dump(average_inference_emissions, f)
+
+    return average_inference_emissions
+
+
+def measure_inference_emissions(tracker, task_name, model, sample, n=10):
+    # Measure inference emissions. Take the average of n inferences.
+    sample = [sample]
+    inference_emissions = []
+    entries_to_average = [
+            "cpu_energy",
+            "duration",
+            "emissions",
+            "emissions_rate",
+            "energy_consumed",
+            "ram_energy",
+    ]
+
+    tracker.start_task(task_name)
+
+    for i in range(n):
+        _ = model.predict(sample)
+
+    emissions = tracker.stop_task()
+    total_inference_emissions = json.loads(emissions.toJSON())
+
+    with open("v1_1.json", "w") as f:
+        json.dump(total_inference_emissions, f)
+
+    for key, value in total_inference_emissions.items():
+        if key in entries_to_average:
+            total_inference_emissions[key] /= n
+
+    with open("v1.json", "w") as f:
+        json.dump(total_inference_emissions, f)
+
+    return total_inference_emissions
+
 
 def main():
     EvaluateStage().run()

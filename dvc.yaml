@@ -132,6 +132,7 @@ stages:
         - src/config.py
         outs:
         - assets/models
+        # - assets/metrics/emissions_training.json
         params:
         - clean.classification
         - train.seed
@@ -156,6 +157,8 @@ stages:
         - train.n_transformer_blocks
         - train.n_heads
         - train.head_size
+        metrics:
+        - assets/metrics/emissions_training.json
 
     evaluate:
         cmd: python3 src/evaluate.py assets/models/ assets/data/combined/train.npz assets/data/combined/test.npz
@@ -179,6 +182,7 @@ stages:
         - evaluate.uncertainty_estimation_sampling_size
         metrics:
         - assets/metrics/metrics.json
+        - assets/metrics/emissions_inference.json
 
     explain:
         cmd: python3 src/explain.py assets/models/model.h5 assets/data/combined/train.npz assets/data/combined/test.npz

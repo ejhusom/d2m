@@ -26,7 +26,6 @@ from config import config
 from preprocess_utils import find_files
 from pipelinestage import PipelineStage
 
-@track_emissions(project_name="scale")
 class ScaleStage(PipelineStage):
     def __init__(self):
         super().__init__(stage_name="scale")
@@ -41,6 +40,7 @@ class ScaleStage(PipelineStage):
             raise NotImplementedError(f"{self.params['output']} not implemented.")
 
 
+    @track_emissions(project_name="scale")
     def run(self):
 
         filepaths = find_files(config.DATA_SPLIT_PATH, file_extension=".npy")

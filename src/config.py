@@ -57,6 +57,8 @@ class Config:
         self.API_MODELS_PATH = self.ASSETS_PATH / "models_api.json"
         self.METRICS_PATH = self.ASSETS_PATH / "metrics"
         self.METRICS_FILE_PATH = self.METRICS_PATH / "metrics.json"
+        self.EMISSIONS_TRAINING_FILE_PATH = self.METRICS_PATH / "emissions_training.json"
+        self.EMISSIONS_INFERENCE_FILE_PATH = self.METRICS_PATH / "emissions_inference.json"
         self.PREDICTIONS_PATH = self.ASSETS_PATH / "predictions"
         self.PREDICTIONS_FILE_PATH = self.PREDICTIONS_PATH / "predictions.csv"
         self.PLOTS_PATH = self.ASSETS_PATH / "plots"

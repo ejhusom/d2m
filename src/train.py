@@ -18,8 +18,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xgboost as xgb
+import json
 import yaml
 from codecarbon import track_emissions
+from codecarbon import EmissionsTracker
 from joblib import dump
 from lightgbm import LGBMClassifier, LGBMRegressor
 from keras_tuner import HyperParameters
@@ -60,13 +62,17 @@ from config import config
 from pipelinestage import PipelineStage
 
 
-@track_emissions(project_name="train")
 class TrainStage(PipelineStage):
 
     def __init__(self):
         super().__init__(stage_name="train")
 
+    @track_emissions(project_name="train_decorator")
     def run(self):
+        emissions = {}
+        tracker = EmissionsTracker(project_name="train")
+        # tracker.start_task("train_prepare")
+
         output_columns = np.array(pd.read_csv(config.OUTPUT_FEATURES_PATH, index_col=0)).reshape(
             -1
         )
@@ -143,8 +149,11 @@ class TrainStage(PipelineStage):
                     # model6,
             ]
 
+            # tracker.stop_task("train_prepare")
 
             for name, model in zip(config.METHODS_IN_ENSEMBLE, models):
+                task_name = f"train_{name}"
+                tracker.start_task(task_name)
                 if name in config.DL_METHODS:
                     history = model0.fit(
                         X_train,
@@ -158,7 +167,16 @@ class TrainStage(PipelineStage):
                     model.fit(X_train, y_train.ravel())
                     dump(model, config.MODELS_PATH / f"model_{name}.h5")
 
-            return 0
+                fit_emissions = tracker.stop_task()
+                fit_emissions_json = json.loads(fit_emissions.toJSON())
+                emissions[name] = fit_emissions_json
+
+            _ = tracker.stop()
+
+            with open(config.EMISSIONS_TRAINING_FILE_PATH, "w") as f:
+                json.dump(emissions, f)
+
+            return _
 
 
         # Build model
@@ -462,11 +480,13 @@ class TrainStage(PipelineStage):
         else:
             raise NotImplementedError(f"Learning method {self.params.train.learning_method} not implemented.")
 
+        task_name = f"train_{self.params.train.learning_method}"
+        # tracker.stop_task("train_prepare")
+        tracker.start_task(task_name)
         if self.params.train.learning_method in config.NON_DL_METHODS:
-            print("Fitting model...")
             model.fit(X_train, y_train)
-            print("Done fitting model")
             dump(model, config.MODELS_FILE_PATH)
+            fit_emissions = tracker.stop_task()
         else:
             print(model.summary())
             plot_neural_network_architecture(model)
@@ -533,6 +553,7 @@ class TrainStage(PipelineStage):
                 model.save(config.MODELS_FILE_PATH)
 
 
+
             if self.params.clean.classification:
                 best_epoch = np.argmax(np.array(val_loss))
             else:
@@ -547,6 +568,16 @@ class TrainStage(PipelineStage):
             plt.plot(n_epochs, val_loss, label="Validation loss")
             plt.legend()
             plt.savefig(config.TRAININGLOSS_PLOT_PATH)
+
+            fit_emissions = tracker.stop_task()
+
+        fit_emissions_json = json.loads(fit_emissions.toJSON())
+        emissions[self.params.train.learning_method] = fit_emissions_json
+
+        _ = tracker.stop()
+
+        with open(config.EMISSIONS_TRAINING_FILE_PATH, "w") as f:
+            json.dump(emissions, f)
 
 def plot_neural_network_architecture(model):
     """Save a plot of the model. Will not work if Graphviz is not installed,

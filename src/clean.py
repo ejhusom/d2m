@@ -11,6 +11,7 @@ Created:
 """
 import json
 import os
+import re
 import sys
 
 import numpy as np
@@ -23,12 +24,12 @@ from config import config
 from pipelinestage import PipelineStage
 from preprocess_utils import find_files
 
-@track_emissions(project_name="clean")
 class CleanStage(PipelineStage):
 
     def __init__(self):
         super().__init__(stage_name="clean")
 
+    @track_emissions(project_name="clean")
     def run(self, inference_df=None):
 
         if inference_df is None:
@@ -183,8 +184,10 @@ class CleanStage(PipelineStage):
         removable_features = []
 
         for message in messages:
+            # Find the names of variables
+            matches = re.findall(r'\[([^\]]+)\]', message)
+            variable = matches[0]
             message = message.split()
-            variable = message[0].strip("[]")
 
             if "constant" in message:
                 removable_features.append(variable)

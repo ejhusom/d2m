@@ -25,12 +25,12 @@ from config import config
 from pipelinestage import PipelineStage
 from preprocess_utils import find_files, move_column
 
-@track_emissions(project_name="featurize")
 class FeaturizeStage(PipelineStage):
 
     def __init__(self):
         super().__init__(stage_name="featurize")
 
+    @track_emissions(project_name="featurize")
     def run(self, inference_df=None):
 
         if inference_df is not None:
