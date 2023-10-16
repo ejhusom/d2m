@@ -101,14 +101,7 @@ class EvaluateStage(PipelineStage):
                 y_pred = model.predict(X_test)
                 y_preds[method] = y_pred
 
-                # tracker.start_task(task_name)
-                # self.run_inference(model, X_test[0], n=10)
-                # inference_emissions = tracker.stop_task()
-                # inference_emissions_json = json.loads(inference_emissions.toJSON())
-                emissions1 = measure_inference_emissions(tracker, task_name + "_1", model, X_test[0])
-                emissions2 = measure_inference_emissions2(tracker, task_name + "_2", model, X_test[0])
-                emissions[name] = emissions1
-                # emissions[name] = inference_emissions_json
+                emissions[name] = measure_inference_emissions(tracker, task_name, model, X_test[0], n=100)
 
             adequate_models = {}
 
@@ -200,6 +193,8 @@ class EvaluateStage(PipelineStage):
                 # save_predictions(pd.DataFrame(y_pred))
 
             plot_prediction(y_test, y_preds, inputs=inputs, info="ensemble")
+
+            tracker.stop()
 
             with open(config.EMISSIONS_INFERENCE_FILE_PATH, "w") as f:
                 json.dump(emissions, f)
@@ -317,11 +312,8 @@ class EvaluateStage(PipelineStage):
         save_predictions(pd.DataFrame(y_pred))
 
         task_name = f"inference_{self.params.train.learning_method}"
-        # tracker.start_task(task_name)
-        # self.run_inference(model, X_test[0], n=10)
-        # inference_emissions = tracker.stop_task()
-        # inference_emissions_json = json.loads(inference_emissions.toJSON())
-        emissions[name] = inference_emissions_json
+        emissions[name] = measure_inference_emissions(tracker, task_name, model, X_test[0], n=100)
+        tracker.stop()
 
         with open(config.EMISSIONS_INFERENCE_FILE_PATH, "w") as f:
             json.dump(emissions, f)
@@ -611,44 +603,7 @@ def plot_sequence_predictions(y_true, y_pred):
 
     fig.write_html(str(config.PLOTS_PATH / "prediction_sequences.html"))
 
-def measure_inference_emissions2(tracker, task_name, model, sample, n=10):
-    # Measure inference emissions. Take the average of n inferences.
-    sample = [sample]
-    inference_emissions = []
-    for i in range(n):
-        tracker.start_task(task_name)
-        _ = model.predict(sample)
-        emissions = tracker.stop_task()
-        single_inference_emissions = json.loads(emissions.toJSON())
-        inference_emissions.append(single_inference_emissions)
-
-    numeric_sum = defaultdict(float)
-    non_numeric_values = {}
-
-    count = 0
-
-    # Iterate through the dictionaries and accumulate the numeric values
-    for data_dict in inference_emissions:
-        count += 1
-        for key, value in data_dict.items():
-            if isinstance(value, (int, float)):
-                numeric_sum[key] += value
-            else:
-                non_numeric_values[key] = value
-
-    # Calculate the average of numeric values
-    average_values = {key: value / count for key, value in numeric_sum.items()}
-
-    # Combine the average numeric values with the non-numeric values
-    average_inference_emissions = {**average_values, **non_numeric_values}
-
-    with open("v2.json", "w") as f:
-        json.dump(average_inference_emissions, f)
-
-    return average_inference_emissions
-
-
-def measure_inference_emissions(tracker, task_name, model, sample, n=10):
+def measure_inference_emissions(tracker, task_name, model, sample, n=100):
     # Measure inference emissions. Take the average of n inferences.
     sample = [sample]
     inference_emissions = []
@@ -667,19 +622,13 @@ def measure_inference_emissions(tracker, task_name, model, sample, n=10):
         _ = model.predict(sample)
 
     emissions = tracker.stop_task()
-    total_inference_emissions = json.loads(emissions.toJSON())
+    emissions = json.loads(emissions.toJSON())
 
-    with open("v1_1.json", "w") as f:
-        json.dump(total_inference_emissions, f)
-
-    for key, value in total_inference_emissions.items():
+    for key, value in emissions.items():
         if key in entries_to_average:
-            total_inference_emissions[key] /= n
+            emissions[key] /= n
 
-    with open("v1.json", "w") as f:
-        json.dump(total_inference_emissions, f)
-
-    return total_inference_emissions
+    return emissions
 
 
 def main():
