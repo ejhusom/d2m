@@ -88,6 +88,6 @@ def main():
     plot_emissions(emissions, "Emissions", "emissions.png")
 
 if __name__ == "__main__":
-    # main()
-    run_pipeline()
+    main()
+    # run_pipeline()
 
