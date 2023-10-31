@@ -195,7 +195,7 @@ stages:
         - src/config.py
         outs:
         - assets/features/feature_importances.csv
-        - assets/features/feature_importances_adequate_models.csv
+        # - assets/features/feature_importances_adequate_models.csv
         params:
         - train.ensemble
         # Number of samples to use for generating shap values

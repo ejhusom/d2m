@@ -17,6 +17,9 @@ import codecarbon
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.graph_objs as go
+
+from config import config
 
 logging.basicConfig(
         filename='d2m.log', 
@@ -25,7 +28,7 @@ logging.basicConfig(
         level=logging.INFO,
 )
 
-def read_emissions_file(filepath):
+def read_emissions_file(filepath=config.EMISSIONS_FILE_PATH):
     """Read emissions file.
 
     Args:
@@ -78,16 +81,75 @@ def run_pipeline():
         logging.info(f"Stage {stage} was skipped.")
 
 
+def plot_average_emissions_per_stage(
+        avg_emissions_per_stage,
+        std_emissions_per_stage,
+        metrics=["duration", "emissions", "energy_consumed"]
+    ):
+
+    average_values = {metric: [] for metric in metrics}
+    std_dev_values = {metric: [] for metric in metrics}
+
+    for metric in metrics:
+        average_values[metric] = avg_emissions_per_stage[metric]
+        std_dev_values[metric] = std_emissions_per_stage[metric]
+
+    traces = []
+
+    for metric in metrics:
+        trace = go.Bar(
+            x=stages,
+            y=average_values[metric],
+            name=f"Average {metric}",
+            error_y=dict(type='data', array=std_dev_values[metric], visible=True),
+        )
+        traces.append(trace)
+
+    layout = go.Layout(
+        title="Pipeline Stage Metrics",
+        xaxis=dict(title="Pipeline Stage"),
+        yaxis=dict(title="Value"),
+        barmode="group",
+    )
+
+    fig = go.Figure(data=traces, layout=layout)
+
+    fig.show()
+
+
 def main():
-    """Main function."""
+    """Main function.
+
+    Useful information:
+
+    - Total emissions
+    - Total emissions per stage
+    - Avg + std emissions per stage
+    - Avg + std emissions for full pipeline run
+
+
+    """
 
     # Read emissions data
-    emissions = read_emissions_file("emissions.csv")
+    df = read_emissions_file(config.EMISSIONS_FILE_PATH)
+    stages = df["project_name"].unique()
+    df["duration_min"] = df["duration"] / 60
+
+    # total_emissions = df.sum()
+
+    total_emissions_per_stage = df.groupby(["project_name"]).sum(numeric_only=True)
+
+    avg_emissions_per_stage = df.groupby(["project_name"]).mean(numeric_only=True)
+    std_emissions_per_stage = df.groupby(["project_name"]).std(numeric_only=True)
+
+    avg_emissions_full_pipeline = avg_emissions_per_stage.sum(numeric_only=True)
+    std_emissions_full_pipeline = np.sqrt(df.groupby(["project_name"]).var(numeric_only=True).sum(numeric_only=True))
+
+    plot_average_emissions_per_stage(avg_emissions_per_stage, std_emissions_per_stage, metrics = ["energy_consumed"])
 
     # Plot emissions
-    plot_emissions(emissions, "Emissions", "emissions.png")
+    # plot_emissions(df, "Emissions", "emissions.png")
 
 if __name__ == "__main__":
     main()
     # run_pipeline()
-

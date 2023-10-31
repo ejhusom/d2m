@@ -81,11 +81,11 @@ class EvaluateStage(PipelineStage):
 
         pd.DataFrame(y_test).to_csv(config.PREDICTIONS_PATH / "true_values.csv")
 
+        adequate_models = {}
+
         if self.params.train.ensemble:
             model_names = []
             y_preds = {}
-            metrics = []
-            # info = ". "
 
             for f in os.listdir(config.MODELS_PATH):
                 if f.startswith("model"):
@@ -102,8 +102,6 @@ class EvaluateStage(PipelineStage):
                 y_preds[method] = y_pred
 
                 emissions[name] = measure_inference_emissions(tracker, task_name, model, X_test[0], n=100)
-
-            adequate_models = {}
 
             if self.params.clean.classification:
 
@@ -186,11 +184,10 @@ class EvaluateStage(PipelineStage):
                 with open(config.METRICS_FILE_PATH, "w") as f:
                     json.dump(metrics, f)
 
-
-                with open(config.ADEQUATE_MODELS_PATH / "adequate_models.json", "w") as f:
-                    json.dump(adequate_models, f)
-
                 # save_predictions(pd.DataFrame(y_pred))
+
+            with open(config.ADEQUATE_MODELS_PATH / "adequate_models.json", "w") as f:
+                json.dump(adequate_models, f)
 
             plot_prediction(y_test, y_preds, inputs=inputs, info="ensemble")
 
@@ -255,6 +252,7 @@ class EvaluateStage(PipelineStage):
                 y_test = np.argmax(y_test, axis=-1)
 
             accuracy = accuracy_score(y_test, y_pred)
+            performance_metric = accuracy
             print(f"Accuracy: {accuracy}")
 
             plot_prediction(y_test, y_pred, info="Accuracy: {})".format(accuracy))
@@ -284,8 +282,11 @@ class EvaluateStage(PipelineStage):
             if len(y_test.shape) > 1 and y_test.shape[1] > 1:
                 plot_sequence_predictions(y_test, y_pred)
 
+            performance_metrics = dict(mse=mse, rmse=rmse, mape=mape, r2=r2)
+            performance_metric = r2
+
             with open(config.METRICS_FILE_PATH, "w") as f:
-                json.dump(dict(mse=mse, rmse=rmse, mape=mape, r2=r2), f)
+                json.dump(performance_metrics, f)
 
         # Print feature importances of the ML algorithm supports it.
         try:
@@ -309,10 +310,15 @@ class EvaluateStage(PipelineStage):
         except:
             pass
 
+        adequate_models[self.params.train.learning_method] = performance_metric
+
+        with open(config.ADEQUATE_MODELS_PATH / "adequate_models.json", "w") as f:
+            json.dump(adequate_models, f)
+
         save_predictions(pd.DataFrame(y_pred))
 
         task_name = f"inference_{self.params.train.learning_method}"
-        emissions[name] = measure_inference_emissions(tracker, task_name, model, X_test[0], n=100)
+        emissions[self.params.train.learning_method] = measure_inference_emissions(tracker, task_name, model, X_test[0], n=100)
         tracker.stop()
 
         with open(config.EMISSIONS_INFERENCE_FILE_PATH, "w") as f:

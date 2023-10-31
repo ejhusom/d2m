@@ -1,6 +1,6 @@
  # Broaching tool wear
  profile:
-     dataset: broaching_with_tool_wear
+     dataset: broaching
 
  clean:
      target: tool_wear
@@ -77,8 +77,8 @@
 
  train:
      seed: 2023
-     learning_method: xgboost
-     ensemble: False
+     learning_method: dnn
+     ensemble: True
      hyperparameter_tuning: False
 
      # Parameters for deep learning (dnn, cnn, rnn):

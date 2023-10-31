@@ -111,11 +111,15 @@ class ExplainStage(PipelineStage):
             # Concat feature importance dataframe for all learning methods
             feature_importances = pd.concat(feature_importances)
             feature_importances.to_csv(config.FEATURES_PATH / "feature_importances.csv")
+            # For the sake of providing valid input to the stage "combine_explanations.py", we also save the feature importances under the following filename:
+            feature_importances.to_csv(config.FEATURES_PATH /
+                    "feature_importances_adequate_models.csv")
 
             pd.options.plotting.backend = "plotly"
             fig = feature_importances.plot.bar()
             fig.write_html(str(config.PLOTS_PATH / "feature_importances.html"))
             fig.show()
+
 
             # fig = feature_importances.transpose().plot.bar()
             # fig.write_html(str(config.PLOTS_PATH / "feature_importances.html"))

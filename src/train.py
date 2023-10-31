@@ -67,11 +67,10 @@ class TrainStage(PipelineStage):
     def __init__(self):
         super().__init__(stage_name="train")
 
-    @track_emissions(project_name="train_decorator")
+    @track_emissions(project_name="train")
     def run(self):
         emissions = {}
-        tracker = EmissionsTracker(project_name="train")
-        # tracker.start_task("train_prepare")
+        tracker = EmissionsTracker(project_name="train_model")
 
         output_columns = np.array(pd.read_csv(config.OUTPUT_FEATURES_PATH, index_col=0)).reshape(
             -1
@@ -149,7 +148,6 @@ class TrainStage(PipelineStage):
                     # model6,
             ]
 
-            # tracker.stop_task("train_prepare")
 
             for name, model in zip(config.METHODS_IN_ENSEMBLE, models):
                 task_name = f"train_{name}"
@@ -481,7 +479,6 @@ class TrainStage(PipelineStage):
             raise NotImplementedError(f"Learning method {self.params.train.learning_method} not implemented.")
 
         task_name = f"train_{self.params.train.learning_method}"
-        # tracker.stop_task("train_prepare")
         tracker.start_task(task_name)
         if self.params.train.learning_method in config.NON_DL_METHODS:
             model.fit(X_train, y_train)
