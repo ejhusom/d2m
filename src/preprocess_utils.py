@@ -198,9 +198,9 @@ def split_sequences(
 
         # Skip round if target_size is not correct. May happen if target_size
         # is larger than window_size.
-        if len(seq_y) != target_size:
-            start_idx += window_size - overlap
-            continue
+        # if len(seq_y) != target_size:
+        #     start_idx += window_size - overlap
+        #     continue
 
         X.append(seq_x)
         y.append(seq_y)
