@@ -46,6 +46,7 @@ class CombineExplanationsStage(PipelineStage):
 
         generate_explanation_report()
 
+
 def combine_ensemble_explanations(feature_importances, method="avg",
         weighting_method="softmax"):
     """Combine explanations from ensemble.
@@ -190,6 +191,10 @@ def combine_ensemble_explanations(feature_importances, method="avg",
     sorted_combined_feature_importances = combined_feature_importances.sort_values(
         ascending=False
     )
+
+    # sorted_combined_feature_importances.columns = ["feature_name", "feature_importance"]
+    sorted_combined_feature_importances.rename("feature_importance", inplace=True)
+    sorted_combined_feature_importances.index.name = "feature_name"
     sorted_combined_feature_importances.to_csv(
         config.FEATURES_PATH / "sorted_combined_feature_importances.csv"
     )

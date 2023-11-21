@@ -29,9 +29,19 @@
                     <option value="cnn" selected>CNN</option>
                     <option value="dnn">DNN</option>
                     <option value="lstm">LSTM</option>
+                    <option value="xgboost">XGBoost</option>
                 </select>
                 <label for="train_split">Training/test set split ratio: <span id="train_split_value"></span></label>
                 <input type="range" min="1" max="9" value="7" class="slider" name="train_split" id="train_split">
+
+				<!-- <h5>Continual learning</h5> -->
+                <!-- <p>Enter model ID:</p> -->
+                <!-- <input type="text" name="id"> -->
+				<!-- <label for="replay">Replay</label> -->
+				<!-- <input type="checkbox"> -->
+                <!-- <label for="replay_ratio">Replay ratio</label> -->
+                <!-- <input type="range" min="1" max="9" value="7" class="slider" name="train_split" id="train_split"> -->
+				<br>
 
                 <input type="submit" value="Create model" onclick="loading()"/>
             </form>

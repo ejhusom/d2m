@@ -121,13 +121,13 @@ class CreateModel(Resource):
         model_metadata["metrics"] = metrics
 
         if params["explain"]["generate_explanations"]:
-            feature_importances = pd.read_csv(config.SHAP_IMPORTANCES_PATH)
-            feature_importances = feature_importances.sort_values(by="SHAP",
+            feature_importances = pd.read_csv(config.FEATURE_IMPORTANCES_PATH)
+            feature_importances = feature_importances.sort_values(by="feature_importance",
                     ascending=False)
             feature_importances = feature_importances.head(10)
             feature_importances = dict(zip(
-                feature_importances["feature"],
-                feature_importances["SHAP"]))
+                feature_importances["feature_name"],
+                feature_importances["feature_importance"]))
             model_metadata["feature_importances"] = feature_importances
 
         try:
@@ -271,4 +271,4 @@ if __name__ == "__main__":
     api.add_resource(CreateModel, "/create_model")
     api.add_resource(InferGUI, "/infer_gui")
     api.add_resource(Infer, "/infer")
-    app.run(host="0.0.0.0")
+    app.run(host="0.0.0.0", port=5001)

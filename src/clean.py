@@ -63,7 +63,7 @@ class CleanStage(PipelineStage):
 
         if self.params.clean.classification:
 
-            if self.params.clean.onehot_encode_target and len(np.unique(combined_df[target])) > 2:
+            if self.params.clean.onehot_encode_target and len(np.unique(combined_df[self.params.clean.target])) > 2:
                 encoder = LabelBinarizer()
             else:
                 if self.params.clean.onehot_encode_target:
@@ -186,6 +186,11 @@ class CleanStage(PipelineStage):
         for message in messages:
             # Find the names of variables
             matches = re.findall(r'\[([^\]]+)\]', message)
+
+            # If no matches are found, the message does not concern a specific variable.
+            if matches == []:
+                continue
+
             variable = matches[0]
             message = message.split()
 

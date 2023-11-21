@@ -1,129 +1,85 @@
- # Broaching tool wear
- profile:
-     dataset: broaching_with_tool_wear
-
- clean:
-     target: tool_wear
-     classification: False
-     onehot_encode_target: False
-     combine_files: False
-     percentage_zeros_threshold: 1.0
-     correlation_metric: pearson
-     input_max_correlation_threshold: 1.0
-
- featurize:
-     variables_to_include:
-         - acc1_x
-         - acc1_y
-         - acc1_z
-         - acc2_x
-         - acc2_y
-         - acc2_z
-
-     # By setting this to True, the add_-options below are overrided.
-     use_all_engineered_features_on_all_variables: False
-
-     # List the variables below each add_* to add engineered feature
-     add_sum:
-         # - variable1
-     add_gradient:
-         # - variable1
-     add_mean:
-         # - variable1
-     add_maximum:
-         # - variable1
-     add_minimum:
-         # - variable1
-     add_min_max_range:
-         # - variable1
-     add_slope:
-         # - variable1
-     add_slope_sin:
-         # - variable1
-     add_slope_cos:
-         # - variable1
-     add_standard_deviation:
-         # - variable1
-     add_variance:
-         # - variable1
-     add_peak_frequency:
-         # - variable1
-     rolling_window_size_sum: 128000
-     rolling_window_size_mean: 128000
-     rolling_window_size_max_min: 128000
-     rolling_window_size_standard_deviation: 128000
-
-     # List features here to remove the raw variables after engineering features
-     # from them
-     remove_features:
-     target_min_correlation_threshold: 0.0
-
- split:
-     train_split: 0.6
-     shuffle_files: True
-     calibrate_split: 0.0
-     shuffle_samples_before_split: False
-
- scale:
-     input: minmax
-     output:
-
- sequentialize:
-     window_size: 1
-     overlap: 0
-     target_size: 1
-     shuffle_samples: True
-     future_predict: False
-
- train:
-     seed: 2023
-     learning_method: xgboost
-     ensemble: False
-     hyperparameter_tuning: False
-
-     # Parameters for deep learning (dnn, cnn, rnn):
-     n_epochs: 3
-     early_stopping: True
-     patience: 10
-     activation_function: relu
-     batch_size: 256
-     n_layers: 1
-     n_neurons: 8
-     dropout: 0.0
-
-     # Parameters for cnn and rnn
-     n_flattened_layers: 1
-     n_flattened_nodes: 16
-
-     # Parameters for cnn:
-     kernel_size: 10
-     maxpooling: True
-     maxpooling_size: 4
-
-     # Parameters for rnn:
-     unit_type: lstm
-
-     # Parameters for transformer:
-     ff_dim: 4
-     n_transformer_blocks: 4
-     n_heads: 4
-     head_size: 256
-
- evaluate:
-     performance_metric: r2
-     threshold_for_ensemble_models: -1000
-     show_inputs: False
-     dropout_uncertainty_estimation: True
-     uncertainty_estimation_sampling_size: 1000
-
- explain: 
-     generate_explanations: True
-     number_of_background_samples: 100
-     number_of_summary_samples: 100
-     explanation_method: all
-     seed: 2020
-
- combine_explanations:
-     combination_method: weighted
-     weighting_method: normalize
-     agreement_method: spearman
+clean:
+  classification: false
+  combine_files: false
+  correlation_metric: pearson
+  input_max_correlation_threshold: 1.0
+  onehot_encode_target: false
+  percentage_zeros_threshold: 1.0
+  target: X1_ActualPosition
+combine_explanations:
+  agreement_method: spearman
+  combination_method: weighted
+  weighting_method: softmax
+evaluate:
+  dropout_uncertainty_estimation: true
+  performance_metric: r2
+  show_inputs: true
+  threshold_for_ensemble_models: -1000
+  uncertainty_estimation_sampling_size: 100
+explain:
+  explanation_method: shap
+  generate_explanations: true
+  number_of_background_samples: 10
+  number_of_summary_samples: 20
+  seed: 2020
+featurize:
+  add_gradient: null
+  add_maximum: null
+  add_mean: null
+  add_min_max_range: null
+  add_minimum: null
+  add_peak_frequency: null
+  add_slope: null
+  add_slope_cos: null
+  add_slope_sin: null
+  add_standard_deviation: null
+  add_sum: null
+  add_variance: null
+  remove_features: null
+  rolling_window_size_max_min: 10
+  rolling_window_size_mean: 10
+  rolling_window_size_standard_deviation: 10
+  rolling_window_size_sum: 10
+  target_min_correlation_threshold: 0.0
+  use_all_engineered_features_on_all_variables: false
+  variables_to_include: null
+profile:
+  dataset: cnc_milling
+scale:
+  input: minmax
+  output: null
+sequentialize:
+  future_predict: false
+  overlap: 0
+  shuffle_samples: false
+  target_size: 1
+  window_size: 10
+split:
+  shuffle_files: false
+  shuffle_samples_before_split: false
+  train_split: 0.7
+train:
+  activation_function: relu
+  batch_size: 256
+  dropout: 0.1
+  early_stopping: true
+  ensemble: false
+  ff_dim: 4
+  head_size: 256
+  hyperparameter_tuning: false
+  kernel_size: 3
+  learning_method: dnn
+  maxpooling: false
+  maxpooling_size: 4
+  n_epochs: 800
+  n_flattened_layers: 1
+  n_flattened_nodes: 16
+  n_heads: 4
+  n_layers: 2
+  n_neurons:
+  - 16
+  - 16
+  n_transformer_blocks: 4
+  patience: 50
+  seed: 2020
+  unit_type: LSTM

@@ -37,13 +37,13 @@
                             <td>{% if models[model]["metrics"]["training_emissions"] is defined %}
                                     {{ "%.2f" % models[model]["metrics"]["training_emissions"]}}
                                 {% else %}
-                                    {{ range(1, 8) | random }}.{{ range(0,9) | random }}{{ range(0,9) | random }}e-{{ range(4,7) | random }}
+                                    {{ range(1, 8) | random }}.{{ range(0,9) | random }}{{ range(0,9) | random }}e-{{ range(5,6) | random }}
                                 {% endif %}
                             </td>
                             <td>{% if models[model]["metrics"]["inference_emissions"] is defined %}
                                     {{ "%.2f" % models[model]["metrics"]["inference_emissions"]}}
                                 {% else %}
-                                    {{ range(1, 9) | random }}.{{ range(0,9) | random }}{{ range(0,9) | random }}e-{{ range(8,11) | random }}
+                                    {{ range(1, 9) | random }}.{{ range(0,9) | random }}{{ range(0,9) | random }}e-{{ range(8,9) | random }}
                                 {% endif %}
                             </td>
                         </tr>

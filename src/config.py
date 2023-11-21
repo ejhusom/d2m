@@ -72,6 +72,7 @@ class Config:
         self.OUTPUT_PATH = self.ASSETS_PATH / "output"
         self.ADEQUATE_MODELS_PATH = self.ASSETS_PATH / "adequate_models"
         self.ADEQUATE_MODELS_FILE_PATH = self.ADEQUATE_MODELS_PATH / "adequate_models.json"
+        self.FEATURE_IMPORTANCES_PATH = self.FEATURES_PATH / "sorted_combined_feature_importances.csv"
 
         self._init_paths()
 

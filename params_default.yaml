@@ -58,14 +58,14 @@ featurize:
 split:
     train_split: 0.5
     shuffle_files: False
-     shuffle_samples_before_split: False
+    shuffle_samples_before_split: False
 
 scale:
     input: minmax
     output:
 
 sequentialize:
-    window_size: 5
+    window_size: 10
     overlap: 0
     target_size: 1
     shuffle_samples: False
@@ -74,13 +74,13 @@ sequentialize:
 train:
     seed: 2020
     learning_method: dnn
-     ensemble: True
+    ensemble: False
     hyperparameter_tuning: False
 
     # Parameters for deep learning (dnn, cnn, lstm etc):
-    n_epochs: 10
+    n_epochs: 800
     early_stopping: True
-    patience: 20
+    patience: 50
     activation_function: relu
     batch_size: 256
     n_layers: 2
@@ -92,7 +92,7 @@ train:
     n_flattened_nodes: 16
 
     # Parameters for cnn:
-    kernel_size: 5
+    kernel_size: 3
     maxpooling: False
     maxpooling_size: 4
 
@@ -120,5 +120,6 @@ explain:
     seed: 2020
 
 combine_explanations:
-     combination_method: weighted
-     weighting_method: softmax
+    combination_method: weighted
+    weighting_method: softmax
+    agreement_method: spearman 

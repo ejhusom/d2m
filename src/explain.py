@@ -65,6 +65,7 @@ class ExplainStage(PipelineStage):
         # Read name of input columns and convert to list
         self.input_columns = pd.read_csv(config.INPUT_FEATURES_PATH, index_col=0)
         self.input_columns = self.input_columns.values.flatten().tolist()
+        self.feature_names = self.input_columns
 
         if self.params.train.ensemble:
             self.explain_ensemble()
@@ -262,7 +263,9 @@ class ExplainStage(PipelineStage):
                     for i in range(self.params.sequentialize.window_size):
                         input_columns_sequence.append(c + f"_{i}")
 
-                self.input_columns = input_columns_sequence
+                self.feature_names = input_columns_sequence
+            else:
+                self.feature_names = self.input_columns
 
             # Extract a summary of the training inputs, to reduce the amount of
             # compute needed to use SHAP
@@ -291,7 +294,7 @@ class ExplainStage(PipelineStage):
                     single_shap_value,
                     np.around(single_sample),
                     show=True,
-                    feature_names=self.input_columns,
+                    feature_names=self.feature_names,
                 )
                 shap.save_html(
                     str(config.PLOTS_PATH) + "/shap_force_plot_single.html",
@@ -304,7 +307,7 @@ class ExplainStage(PipelineStage):
                     shap_values,
                     X_test_summary,
                     show=True,
-                    feature_names=self.input_columns,
+                    feature_names=self.feature_names,
                 )
                 shap.save_html(
                     str(config.PLOTS_PATH) + "/shap_force_plot.html", shap_force_plot
@@ -314,7 +317,7 @@ class ExplainStage(PipelineStage):
                 shap.summary_plot(
                     shap_values,
                     X_test_summary,
-                    feature_names=self.input_columns,
+                    feature_names=self.feature_names,
                     plot_size=(8, 5),
                     show=False,
                     max_display=10,
@@ -353,12 +356,13 @@ class ExplainStage(PipelineStage):
                     explainer.expected_value,
                     shap_values[0, :],
                     X_test_summary[0, :],
-                    feature_names=self.input_columns,
+                    feature_names=self.feature_names,
                 )
-                shap.save_html(
-                    str(config.PLOTS_PATH) + "/shap_force_plot_single.html",
-                    shap_force_plot_single,
-                )
+
+                # shap.save_html(
+                #     str(config.PLOTS_PATH) + "/shap_force_plot_single.html",
+                #     shap_force_plot_single,
+                # )
 
                 # Expand dimensions with 1 in order to plot. The built-in
                 # image_plot of the shap library requires channel as one of the
@@ -378,7 +382,7 @@ class ExplainStage(PipelineStage):
                     config.PLOTS_PATH / "shap_image_plot.png", bbox_inches="tight", dpi=300
                 )
 
-        shap_values = pd.DataFrame(shap_values, columns=self.input_columns).sort_index(
+        shap_values = pd.DataFrame(shap_values, columns=self.feature_names).sort_index(
             axis=1
         )
 
@@ -398,7 +402,7 @@ class ExplainStage(PipelineStage):
 
             lime_explainer = lime.lime_tabular.RecurrentTabularExplainer(
                 self.X_test,
-                feature_names=self.input_columns,
+                feature_names=self.feature_names,
                 mode=mode,
                 discretize_continuous=False,
             )
@@ -410,11 +414,11 @@ class ExplainStage(PipelineStage):
                     for i in range(self.params.sequentialize.window_size):
                         input_columns_sequence.append(c + f"_{i}")
 
-                self.input_columns = input_columns_sequence
+                self.feature_names = input_columns_sequence
 
             lime_explainer = lime.lime_tabular.LimeTabularExplainer(
                 self.X_test,
-                feature_names=self.input_columns,
+                feature_names=self.feature_names,
                 mode=mode,
                 discretize_continuous=False,
             )
