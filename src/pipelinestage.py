@@ -14,6 +14,7 @@ from joblib import load
 from tensorflow.keras import models
 
 from config import config
+from param_validation import AllParams
 
 class Struct(object):
     def __init__(self, data):
@@ -27,25 +28,51 @@ class Struct(object):
             return Struct(value) if isinstance(value, dict) else value
 
 class PipelineStage():
+    """
+    A superclass for pipeline stages in a machine learning workflow.
+
+    This class provides a common structure for individual stages of the 
+    machine learning pipeline. It handles the initialization of parameters 
+    from a configuration file, sets up the raw data path, and validates 
+    the parameters using Pydantic models.
+
+    Attributes:
+        stage_name (str): The name of the current pipeline stage.
+        params_dict (dict): A dictionary containing parameters from the YAML file.
+        params (AllParams): Validated parameters using the AllParams Pydantic model.
+        raw_data_path (Path): Path to the raw data directory, can be adjusted based on dataset parameter.
+
+    Methods:
+        __init__(stage_name): Constructs all the necessary attributes for the pipeline stage object.
+
+    Args:
+        stage_name (str): The name of the pipeline stage.
+
+    Raises:
+        FileNotFoundError: If the parameters YAML file is not found.
+        yaml.YAMLError: If there are issues parsing the YAML file.
+        ValidationError: If parameter validation fails.
+
+    Example:
+        >>> pipeline_stage = PipelineStage("clean")
+        >>> print(pipeline_stage.stage_name)
+        'clean'
+    """
 
     def __init__(self, stage_name):
 
         self.stage_name = stage_name
-
-        # Initialize parameters
-        self.params_dict = {}
-        self.params = None
         self.raw_data_path = config.DATA_PATH_RAW
 
         try:
+            # Load and validate parameters
             with open(config.PARAMS_FILE_PATH, 'r') as file:
-                self.params_dict = yaml.safe_load(file)
-                self.params = Struct(self.params_dict)
+                params_dict = yaml.safe_load(file)
+                self.params = AllParams(**params_dict)
 
-            # If no name of data set is given, all files present in 'assets/data/raw'
-            # will be used.
-            if self.params.profile.dataset is not None:
-                self.raw_data_path = config.DATA_PATH_RAW / self.params.profile.dataset
+            # Set the raw data path based on dataset parameter
+            if self.params.profile.dataset:
+                self.raw_data_path = Path(config.DATA_PATH_RAW) / self.params.profile.dataset
 
         except FileNotFoundError:
             print(f"Error: File {config.PARAMS_FILE_PATH} not found.")
@@ -53,18 +80,26 @@ class PipelineStage():
         except yaml.YAMLError as exc:
             print(f"Error parsing the YAML file: {exc}")
             # Handle the error or re-raise as needed
+        except ValidationError as e:
+            print(f"Parameter validation error: {e}")
 
     def save_data(self, dfs, filepaths):
         pass
     
     def load_model(self, model_filepath, method=None):
+        model = None
 
         if method is None:
             method = self.params.train.learning_method
 
-        if method in config.DL_METHODS:
-            model = models.load_model(model_filepath)
-        else:
-            model = load(model_filepath)
+        try:
+            if method in config.DL_METHODS:
+                model = models.load_model(model_filepath)
+            else:
+                model = load(model_filepath)
+
+        except FileNotFoundError:
+            print(f"Error: Model file {model_filepath} not found.")
+            # Handle the error or re-raise as needed
 
         return model
