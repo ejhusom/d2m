@@ -32,16 +32,27 @@ class PipelineStage():
 
         self.stage_name = stage_name
 
-        # Read parameter file and convert to object
-        self.params_dict = yaml.safe_load(open(config.PARAMS_FILE_PATH))
-        self.params = Struct(self.params_dict)
-
+        # Initialize parameters
+        self.params_dict = {}
+        self.params = None
         self.raw_data_path = config.DATA_PATH_RAW
 
-        # If no name of data set is given, all files present in 'assets/data/raw'
-        # will be used.
-        if self.params.profile.dataset is not None:
-            self.raw_data_path = config.DATA_PATH_RAW / self.params.profile.dataset
+        try:
+            with open(config.PARAMS_FILE_PATH, 'r') as file:
+                self.params_dict = yaml.safe_load(file)
+                self.params = Struct(self.params_dict)
+
+            # If no name of data set is given, all files present in 'assets/data/raw'
+            # will be used.
+            if self.params.profile.dataset is not None:
+                self.raw_data_path = config.DATA_PATH_RAW / self.params.profile.dataset
+
+        except FileNotFoundError:
+            print(f"Error: File {config.PARAMS_FILE_PATH} not found.")
+            # Handle the error or re-raise as needed
+        except yaml.YAMLError as exc:
+            print(f"Error parsing the YAML file: {exc}")
+            # Handle the error or re-raise as needed
 
     def save_data(self, dfs, filepaths):
         pass
