@@ -42,6 +42,9 @@ class PipelineStage():
         # will be used.
         if self.params.profile.dataset is not None:
             self.raw_data_path = config.DATA_PATH_RAW / self.params.profile.dataset
+
+    def save_data(self, dfs, filepaths):
+        pass
     
     def load_model(self, model_filepath, method=None):
 

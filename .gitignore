@@ -58,3 +58,4 @@ assets/output/
 models.json
 assets/models_api.json
 
+src/templates/prediction.html
