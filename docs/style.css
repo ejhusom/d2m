@@ -1,3 +1,10 @@
+* {
+    --darkbackground: #000;
+    --darkbackground2: #171717;
+    --textcolor: #464646;
+    --highlightcolor: #a3a3a3;
+}
+
 body {
     font-family: "SF Pro Display", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
     line-height: 1.6;
@@ -11,8 +18,12 @@ h1 {
 	font-size: 3em;
 }
 
+h3 {
+	text-align: center;
+}
+
 .navbar {
-	background-color: #000;
+	background-color: var(--darkbackground);
 	color: white;
 	padding: 10px 20px;
 	display: flex;
@@ -36,7 +47,7 @@ h1 {
 
 
 header .banner {
-    background-color: #161617;
+    background-color: var(--darkbackground2);
     color: white;
     text-align: center;
     padding: 20px 0;
@@ -47,13 +58,14 @@ header .banner p {
 }
 
 section.box {
-	max-width: 90ch;
+	max-width: 110ch;
     padding: 20px;
     background-color: white;
 	margin-top: 2em;
     margin-left: auto;
     margin-right: auto;
-    border-radius: 8px;
+	margin-bottom: 2em;
+    border-radius: 12px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
@@ -63,15 +75,17 @@ section h2 {
 }
 
 section.nobox {
-	max-width: 90ch;
+	max-width: 110ch;
 	margin-top: 2em;
     margin-left: auto;
     margin-right: auto;
 }
 
 .grid-container {
-	max-width: 90ch;
-	margin: auto;
+	max-width: 110ch;
+	margin-top: 2em;
+	margin-left: auto;
+	margin-right: auto;
 	display: grid;
 	grid-template-columns: auto auto; /* Two columns */
 	/* padding: 10px; */
@@ -82,8 +96,13 @@ section.nobox {
 	border: 1px solid #ddd; /* Light-grey border */
 	padding: 20px;
 	text-align: center;
-	border-radius: 5px; /* Rounded corners for the boxes */
+	border-radius: 12px; /* Rounded corners for the boxes */
 	box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow for depth */
+}
+
+.grid-item-nobox {
+	padding: 20px;
+	/* text-align: center; */
 }
 
 footer {
@@ -94,7 +113,7 @@ footer {
 }
 
 a {
-    color: #007aff;
+    /* color: #007aff; */
 }
 
 button {
@@ -106,4 +125,8 @@ button {
 	color: #161617;
 	cursor: pointer;
 	border-radius: 5px;
+}
+
+img {
+	width: 100%;
 }
