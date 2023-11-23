@@ -23,7 +23,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 from config import config
 from pipelinestage import PipelineStage
-from preprocess_utils import find_files, move_column
+from preprocess_utils import move_column
 
 class FeaturizeStage(PipelineStage):
 
@@ -54,7 +54,7 @@ class FeaturizeStage(PipelineStage):
 
             return df
 
-        filepaths = find_files(config.DATA_CLEANED_PATH, file_extension=".csv")
+        filepaths = self.find_files(config.DATA_CLEANED_PATH, file_extension=".csv")
         print(filepaths)
 
         output_columns = np.array(

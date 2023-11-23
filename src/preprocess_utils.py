@@ -61,36 +61,6 @@ def read_csv(filename, delete_columns=[], verbose=False):
 
     return df, index
 
-
-def find_files(dir_path, file_extension=[]):
-    """Find files in directory.
-
-    Args:
-        dir_path (str): Path to directory containing files.
-        file_extension (str): Only find files with a certain extension. Default
-            is an empty string, which means it will find all files.
-
-    Returns:
-        filepaths (list): All files found.
-
-    """
-
-    filepaths = []
-
-    if isinstance(dir_path, PosixPath):
-        dir_path = str(dir_path)
-
-    if type(file_extension) is not list:
-        file_extension = [file_extension]
-
-    for extension in file_extension:
-        for f in sorted(os.listdir(dir_path)):
-            if f.endswith(extension):
-                filepaths.append(dir_path + "/" + f)
-
-    return filepaths
-
-
 def print_dataframe(df, message=""):
     """Print dataframe to terminal, with boundary and message.
 

@@ -9,8 +9,11 @@ Created:
     2023-08-02 onsdag 11:24:36 
 
 """
-from pathlib import Path
+import os
+
+from pathlib import Path, PosixPath
 import yaml
+import pandas as pd
 from pydantic import ValidationError
 from joblib import load
 from tensorflow.keras import models
@@ -69,8 +72,8 @@ class PipelineStage():
         try:
             # Load and validate parameters
             with open(config.PARAMS_FILE_PATH, 'r') as file:
-                params_dict = yaml.safe_load(file)
-                self.params = AllParams(**params_dict)
+                self.params_dict = yaml.safe_load(file)
+                self.params = AllParams(**self.params_dict)
 
             # Set the raw data path based on dataset parameter
             if self.params.profile.dataset:
@@ -86,8 +89,46 @@ class PipelineStage():
             print(f"Parameter validation error: {e}")
             raise e
 
-    def save_data(self, dfs, filepaths):
-        pass
+    def find_files(self, dir_path, file_extension=[]):
+        """Find files in directory.
+
+        Args:
+            dir_path (str): Path to directory containing files.
+            file_extension (str): Only find files with a certain extension. Default
+                is an empty string, which means it will find all files.
+
+        Returns:
+            filepaths (list): All files found.
+
+        """
+
+        filepaths = []
+
+        if isinstance(dir_path, PosixPath):
+            dir_path = str(dir_path)
+
+        if type(file_extension) is not list:
+            file_extension = [file_extension]
+
+        for extension in file_extension:
+            for f in sorted(os.listdir(dir_path)):
+                if f.endswith(extension):
+                    filepaths.append(dir_path + "/" + f)
+
+        return filepaths
+
+    def read_data(self, filepaths):
+        dfs = []
+        for filepath in filepaths:
+            try:
+                df = pd.read_csv(filepath)
+                dfs.append(df)
+            except pd.errors.EmptyDataError:
+                logging.warning(f"Empty data file skipped: {filepath}")
+            except Exception as e:
+                logging.error(f"Error reading file {filepath}: {e}")
+                raise
+        return dfs
     
     def load_model(self, model_filepath, method=None):
         model = None

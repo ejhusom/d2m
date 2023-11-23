@@ -19,7 +19,6 @@ from codecarbon import track_emissions
 
 from config import config
 from pipelinestage import PipelineStage
-from preprocess_utils import find_files
 
 
 class SplitStage(PipelineStage):
@@ -38,7 +37,7 @@ class SplitStage(PipelineStage):
     @track_emissions(project_name="split")
     def run(self):
 
-        filepaths = find_files(config.DATA_FEATURIZED_PATH, file_extension=".npy")
+        filepaths = self.find_files(config.DATA_FEATURIZED_PATH, file_extension=".npy")
 
         # Handle special case where there is only one data file.
         if isinstance(filepaths, str) or len(filepaths) == 1:

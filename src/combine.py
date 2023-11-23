@@ -17,7 +17,6 @@ from codecarbon import track_emissions
 
 from config import config
 from pipelinestage import PipelineStage
-from preprocess_utils import find_files
 
 
 class CombineStage(PipelineStage):
@@ -34,7 +33,7 @@ class CombineStage(PipelineStage):
     @track_emissions(project_name="combine")
     def run(self):
 
-        filepaths = find_files(config.DATA_SEQUENTIALIZED_PATH, file_extension=".npz")
+        filepaths = self.find_files(config.DATA_SEQUENTIALIZED_PATH, file_extension=".npz")
 
         train_inputs = []
         train_outputs = []

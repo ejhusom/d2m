@@ -23,7 +23,6 @@ from codecarbon import track_emissions
 from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
 
 from config import config
-from preprocess_utils import find_files
 from pipelinestage import PipelineStage
 
 class ScaleStage(PipelineStage):
@@ -43,7 +42,7 @@ class ScaleStage(PipelineStage):
     @track_emissions(project_name="scale")
     def run(self):
 
-        filepaths = find_files(config.DATA_SPLIT_PATH, file_extension=".npy")
+        filepaths = self.find_files(config.DATA_SPLIT_PATH, file_extension=".npy")
         train_inputs = []
         train_outputs = []
 

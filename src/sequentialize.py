@@ -22,7 +22,7 @@ from codecarbon import track_emissions
 
 from config import config
 from pipelinestage import PipelineStage
-from preprocess_utils import find_files, flatten_sequentialized, split_sequences
+from preprocess_utils import flatten_sequentialized, split_sequences
 
 
 class SequentializeStage(PipelineStage):
@@ -34,7 +34,7 @@ class SequentializeStage(PipelineStage):
 
     @track_emissions(project_name="sequentialize")
     def run(self):
-        filepaths = find_files(config.DATA_SCALED_PATH, file_extension=".npz")
+        filepaths = self.find_files(config.DATA_SCALED_PATH, file_extension=".npz")
 
         if self.params.clean.classification:
             target_size = 1

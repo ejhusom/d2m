@@ -15,7 +15,6 @@ from codecarbon import track_emissions
 from ydata_profiling import ProfileReport
 
 from config import config
-from preprocess_utils import find_files
 from pipelinestage import PipelineStage
 
 class ProfileStage(PipelineStage):
@@ -36,7 +35,7 @@ class ProfileStage(PipelineStage):
 
         """
 
-        filepaths = find_files(self.raw_data_path, file_extension=".csv")
+        filepaths = self.find_files(self.raw_data_path, file_extension=".csv")
     
         dfs = []
     
