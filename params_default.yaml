@@ -61,8 +61,8 @@ split:
     shuffle_samples_before_split: False
 
 scale:
-    input: minmax
-    output:
+    input_method: minmax
+    output_method:
 
 sequentialize:
     window_size: 10

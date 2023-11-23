@@ -1,6 +1,6 @@
 clean:
   classification: false
-  combine_files: false
+  combine_files: 9
   correlation_metric: pearson
   input_max_correlation_threshold: 1.0
   onehot_encode_target: false
@@ -46,8 +46,8 @@ featurize:
 profile:
   dataset: cnc_milling
 scale:
-  input: minmax
-  output: null
+  input_method: minmax
+  output_method: null
 sequentialize:
   future_predict: false
   overlap: 0

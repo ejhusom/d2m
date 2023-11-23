@@ -31,13 +31,13 @@ class ScaleStage(PipelineStage):
         super().__init__(stage_name="scale")
 
         # Initialize the scalers using the method
-        self.input_scaler = self._get_scaler(self.params.scale.input)
-        self.output_scaler = self._get_scaler(self.params.scale.output)
+        self.input_scaler = self._get_scaler(self.params.scale.input_method)
+        self.output_scaler = self._get_scaler(self.params.scale.output_method)
 
         if self.input_scaler == NotImplemented:
-            raise NotImplementedError(f"{self.params['input']} not implemented.")
+            raise NotImplementedError(f"{self.params['input_method']} not implemented.")
         if self.output_scaler == NotImplemented:
-            raise NotImplementedError(f"{self.params['output']} not implemented.")
+            raise NotImplementedError(f"{self.params['output_method']} not implemented.")
 
 
     @track_emissions(project_name="scale")

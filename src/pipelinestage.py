@@ -9,7 +9,9 @@ Created:
     2023-08-02 onsdag 11:24:36 
 
 """
+from pathlib import Path
 import yaml
+from pydantic import ValidationError
 from joblib import load
 from tensorflow.keras import models
 
@@ -74,14 +76,15 @@ class PipelineStage():
             if self.params.profile.dataset:
                 self.raw_data_path = Path(config.DATA_PATH_RAW) / self.params.profile.dataset
 
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             print(f"Error: File {config.PARAMS_FILE_PATH} not found.")
-            # Handle the error or re-raise as needed
-        except yaml.YAMLError as exc:
-            print(f"Error parsing the YAML file: {exc}")
-            # Handle the error or re-raise as needed
+            raise e
+        except yaml.YAMLError as e:
+            print(f"Error parsing the YAML file: {e}")
+            raise e
         except ValidationError as e:
             print(f"Parameter validation error: {e}")
+            raise e
 
     def save_data(self, dfs, filepaths):
         pass

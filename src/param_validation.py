@@ -9,8 +9,40 @@ Created:
     2023-11-23 torsdag 14:42:43 
 
 """
+from enum import Enum
 from pydantic import BaseModel, validator, Field
-from typing import List, Optional
+from typing import List, Optional, Union
+
+class LearningMethod(str, Enum):
+    DNN = 'dnn'
+    CNN = 'cnn'
+    RNN = 'rnn'
+    DT = 'dt'
+    RF = 'rf'
+    EXPLAINABLEBOOSTING = 'explainableboosting'
+    XGBOOST = 'xgboost'
+    XGB = 'xgb'
+    LGBM = 'lgbm'
+    LDA = 'lda'
+    QDA = 'qda'
+    SVM = 'svm'
+    LINEARREGRESSION = 'linearregression'
+    RIDGEREGRESSION = 'ridgeregression'
+    LASSO = 'lasso'
+    LARS = 'lars'
+    BAYESIANRIDGE = 'bayesianridge'
+    ARDREGRESSION = 'ardregression'
+    ELASTICNET = 'elasticnet'
+    SGD = 'sgd'
+    KNEIGHBORS = 'kneighbors'
+    KN = 'kn'
+    GB = 'gb'
+    GRADIENTBOOSTING = 'gradientboosting'
+
+class ExplanationMethod(str, Enum):
+    SHAP = 'shap'
+    LIME = 'lime'
+    ALL = 'all'
 
 class ProfileParams(BaseModel):
     dataset: str
@@ -29,7 +61,16 @@ class FeaturizeParams(BaseModel):
     use_all_engineered_features_on_all_variables: bool
     add_sum: Optional[List[str]]
     add_gradient: Optional[List[str]]
-    # ... Other similar fields ...
+    add_mean: Optional[List[str]]
+    add_maximum: Optional[List[str]]
+    add_minimum: Optional[List[str]]
+    add_min_max_range: Optional[List[str]]
+    add_slope: Optional[List[str]]
+    add_slope_sin: Optional[List[str]]
+    add_slope_cos: Optional[List[str]]
+    add_standard_deviation: Optional[List[str]]
+    add_variance: Optional[List[str]]
+    add_peak_frequency: Optional[List[str]]
     rolling_window_size_sum: int
     rolling_window_size_mean: int
     rolling_window_size_max_min: int
@@ -43,8 +84,8 @@ class SplitParams(BaseModel):
     shuffle_samples_before_split: bool
 
 class ScaleParams(BaseModel):
-    input: str
-    output: Optional[str]
+    input_method: str
+    output_method: Optional[str]
 
 class SequentializeParams(BaseModel):
     window_size: int
@@ -55,11 +96,27 @@ class SequentializeParams(BaseModel):
 
 class TrainParams(BaseModel):
     seed: int
-    learning_method: str
+    learning_method: LearningMethod
     ensemble: bool
     hyperparameter_tuning: bool
-    # ... Other fields ...
-    # Add validators if necessary
+    n_epochs: int
+    early_stopping: bool
+    patience: int
+    activation_function: str
+    batch_size: int
+    n_layers: int
+    n_neurons: Union[int, List[int]]
+    dropout: float = Field(..., ge=0, le=1)
+    n_flattened_layers: int
+    n_flattened_nodes: int
+    kernel_size: int
+    maxpooling: bool
+    maxpooling_size: int
+    unit_type: str
+    ff_dim: int
+    n_transformer_blocks: int
+    n_heads: int
+    head_size: int
 
 class EvaluateParams(BaseModel):
     performance_metric: str
@@ -72,7 +129,7 @@ class ExplainParams(BaseModel):
     generate_explanations: bool
     number_of_background_samples: int
     number_of_summary_samples: int
-    explanation_method: str
+    explanation_method: ExplanationMethod
     seed: int
 
 class CombineExplanationsParams(BaseModel):
