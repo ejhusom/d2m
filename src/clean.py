@@ -45,10 +45,9 @@ class CleanStage(PipelineStage):
 
 
         if inference_df is not None:
-            combined_df, output_columns = self.handle_target_encoding(combined_df)
-            self.save_data(combined_df, filepaths, output_columns)
+            # combined_df, output_columns = self.handle_target_encoding(combined_df)
+            # self.save_data(combined_df, filepaths, output_columns)
 
-# CURRENT REFACTORING STATUS ==============================================================
             if self.params.clean.target in inference_df.columns:
                 del combined_df[self.params.clean.target]
 
