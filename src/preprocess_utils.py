@@ -22,11 +22,6 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
 
-from utils import *
-
-# plt.rcParams['figure.figsize'] = [5.0, 3.0]
-# plt.rcParams['figure.dpi'] = 300
-
 
 def read_csv(filename, delete_columns=[], verbose=False):
     """Read csv file, and make proper adjustment to the resulting dataframe.
@@ -69,8 +64,6 @@ def print_dataframe(df, message=""):
         message (str): Optional message to print.
 
     """
-
-    print_horizontal_line()
 
     print(message)
     print(df)
