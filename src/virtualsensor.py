@@ -21,7 +21,6 @@ from combine import *
 from config import config
 from evaluate import *
 from featurize import *
-from preprocess_utils import split_X_sequences
 from profiling import *
 from scale import *
 from sequentialize import *

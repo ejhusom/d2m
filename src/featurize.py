@@ -23,7 +23,6 @@ from sklearn.preprocessing import OneHotEncoder
 
 from config import config
 from pipelinestage import PipelineStage
-from preprocess_utils import move_column
 
 class FeaturizeStage(PipelineStage):
 
@@ -478,6 +477,27 @@ def calculate_slope(series, shift=2, rolling_mean_window=1, absvalue=False):
         #     categorical_variables.remove(self.params.clean.target)
 
         return categorical_variables
+
+def move_column(df, column_name, new_idx):
+    """
+    Move a column in a dataframe.
+
+    Args:
+        df (DataFrame): Dataframe containing the column to be moved.
+        column_name (str): Name of the column to be moved.
+        new_idx (int): The column index the column should be moved to.
+
+    Returns:
+        df (DataFrame): Data frame with the columns reordered.
+
+    """
+
+    old_idx = df.columns.get_loc(column_name)
+    reordered_columns = list(df.columns)
+    reordered_columns.insert(0, reordered_columns.pop(old_idx))
+
+    return df[reordered_columns]
+
 
 def main():
     FeaturizeStage().run()
