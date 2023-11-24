@@ -22,7 +22,6 @@ from sklearn.preprocessing import LabelBinarizer, LabelEncoder
 
 from config import config
 from pipelinestage import PipelineStage
-from preprocess_utils import find_files
 
 class CleanStage(PipelineStage):
 
@@ -33,29 +32,22 @@ class CleanStage(PipelineStage):
     def run(self, inference_df=None):
 
         if inference_df is None:
-            # Find removable variables from profiling report
             removable_features = self.parse_profile_warnings()
             pd.DataFrame(removable_features).to_csv(config.REMOVABLE_FEATURES)
-
-            # Find input files
-            filepaths = find_files(self.raw_data_path, file_extension=".csv")
-
-            dfs = []
-
-            for filepath in filepaths:
-                dfs.append(pd.read_csv(filepath))
+            filepaths = self.find_files(self.raw_data_path, file_extension=".csv")
+            dfs = self.read_data(filepaths)
         else:
-            # Remove features that should not be used with the current model.
-            removable_features = np.array(
-                pd.read_csv(config.REMOVABLE_FEATURES, index_col=0)
-            ).reshape(-1)
-
+            removable_features = self.load_removable_features()
             dfs = [inference_df]
 
         dfs = self.remove_features(dfs, removable_features)
         combined_df = pd.concat(dfs, ignore_index=True)
 
+
         if inference_df is not None:
+            # combined_df, output_columns = self.handle_target_encoding(combined_df)
+            # self.save_data(combined_df, filepaths, output_columns)
+
             if self.params.clean.target in inference_df.columns:
                 del combined_df[self.params.clean.target]
 
@@ -96,6 +88,16 @@ class CleanStage(PipelineStage):
 
         pd.DataFrame(output_columns).to_csv(config.OUTPUT_FEATURES_PATH)
 
+    def load_removable_features(self):
+        try:
+            removable_features = np.array(
+                pd.read_csv(config.REMOVABLE_FEATURES, index_col=0)
+            ).reshape(-1)
+            return removable_features
+        except FileNotFoundError:
+            print(f"Removable features file not found: {config.REMOVABLE_FEATURES}")
+            raise
+
     def remove_features(self, dfs, removable_features):
         """Read data and delete removable features.
 
@@ -126,6 +128,36 @@ class CleanStage(PipelineStage):
             cleaned_dfs.append(df)
 
         return cleaned_dfs
+
+    def handle_target_encoding(self, df):
+        """
+        Handle the encoding of the target variable in the dataframe.
+
+        Args:
+            df (pd.DataFrame): The dataframe to encode the target variable in.
+
+        Returns:
+            Tuple[pd.DataFrame, List[str]]: A tuple containing the modified dataframe and a list of output column names.
+        """
+        if self.params.clean.classification:
+            if self.params.clean.onehot_encode_target and len(np.unique(df[self.params.clean.target])) > 2:
+                encoder = LabelBinarizer()
+            else:
+                if self.params.clean.onehot_encode_target:
+                    raise ValueError(
+                        "Parameter 'onehot_encode_target' is set to True, but target is binary. Change parameter to False in order to use this pipeline."
+                    )
+                encoder = LabelEncoder()
+
+            target_col = np.array(df[self.params.clean.target]).reshape(-1)
+            encoder.fit(target_col)
+            logging.info(f"Classes: {encoder.classes_}")
+            logging.info(f"Encoded classes: {encoder.transform(encoder.classes_)}")
+
+            df, output_columns = self.encode_target(encoder, df, self.params.clean.target)
+            return df, output_columns
+        else:
+            return df, [self.params.clean.target]
 
 
     def encode_target(self, encoder, df, target):

@@ -1,0 +1,31 @@
+
+
+
+
+      profile:
+          dataset: weather_forecast
+      
+      clean:
+          classification: False
+      
+      featurize:
+          use_all_engineered_features_on_all_variables: False
+      
+      train:
+          learning_method: dnn
+          n_epochs: 800
+      
+      evaluate:
+          performance_metric: r2
+          dropout_uncertainty_estimation: True
+      
+      explain: 
+          generate_explanations: True
+          explanation_method: shap
+      
+      combine_explanations:
+          consistency_metric: spearman 
+      
+      
+      
+
