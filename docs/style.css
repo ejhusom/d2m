@@ -124,7 +124,7 @@ section.nobox {
 footer {
     text-align: center;
     padding: 20px 0;
-    background-color: #fff;
+    /* background-color: #fff; */
 	margin-top: 2em;
     border-top: 1px solid #eaeaea;
 }
