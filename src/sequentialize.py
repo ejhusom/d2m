@@ -22,7 +22,6 @@ from codecarbon import track_emissions
 
 from config import config
 from pipelinestage import PipelineStage
-from preprocess_utils import flatten_sequentialized
 
 class SequentializeStage(PipelineStage):
     """Make sequences out of tabular data."""

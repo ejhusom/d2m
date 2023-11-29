@@ -209,6 +209,10 @@ class EvaluateStage(PipelineStage):
         else:
             model = models.load_model(config.MODELS_FILE_PATH)
 
+            # Convert the model til TFLite
+            # converter = tf.lite.TFLiteConverter.from_keras_model(model)
+            # tflite_model = converter.convert()
+
             if self.params.evaluate.dropout_uncertainty_estimation and not self.params.train.ensemble:
                 predictions = []
 
