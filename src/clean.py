@@ -211,7 +211,11 @@ class CleanStage(PipelineStage):
             messages = profile_json["alerts"]
 
         variables = list(profile_json["variables"].keys())
-        correlations = profile_json["correlations"]["auto"]
+
+        try:
+            correlations = profile_json["correlations"]["auto"]
+        except:
+            correlations = None
 
         removable_features = []
 
