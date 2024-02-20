@@ -104,13 +104,13 @@ class VirtualSensor:
         classification = params["clean"]["classification"]
         onehot_encode_target = params["clean"]["onehot_encode_target"]
         learning_method = params["train"]["learning_method"]
-        input_method = params["scale"]["input"]
-        output_method = params["scale"]["output"]
+        input_method = params["scale"]["input_method"]
+        output_method = params["scale"]["output_method"]
         window_size = params["sequentialize"]["window_size"]
         overlap = params["sequentialize"]["overlap"]
 
-        df = clean(inference_df=inference_df)
-        df = featurize(inference=True, inference_df=df)
+        df = CleanStage().run(inference_df=inference_df)
+        df = FeaturizeStage().run(inference_df=df)
 
         self._check_features_existence(df)
 
